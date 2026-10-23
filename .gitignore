@@ -1,0 +1,11 @@
+node_modules
+.next
+
+# Databasen byggs av scripts/seed.mjs, kör: npm run db:reset
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+tsconfig.tsbuildinfo
+.DS_Store

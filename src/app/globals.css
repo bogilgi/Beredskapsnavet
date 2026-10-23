@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eef4fb;
+  --color-brand-100: #d6e4f4;
+  --color-brand-200: #adc8e7;
+  --color-brand-500: #2d5e9e;
+  --color-brand-600: #234e82;
+  --color-brand-700: #1b3f6d;
+  --color-brand-800: #152f52;
+  --color-brand-900: #10243d;
+
+  --color-ok-bg: #ecfdf5;
+  --color-ok-text: #0f5132;
+  --color-ok-ring: #a7f3d0;
+  --color-ok-solid: #0f9d6e;
+
+  --color-varn-bg: #fff8eb;
+  --color-varn-text: #8a4b08;
+  --color-varn-ring: #fcd9a0;
+  --color-varn-solid: #d98518;
+
+  --color-allv-bg: #fef2f2;
+  --color-allv-text: #8f1d1d;
+  --color-allv-ring: #fbc9c9;
+  --color-allv-solid: #c62828;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-slate-100 text-slate-800 font-sans;
+  }
+  /* Synlig fokusmarkering krävs för tillgänglighet (DOS-lagen, WCAG 2.1 AA). */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+}
+
+@layer components {
+  .kort {
+    @apply bg-white rounded-lg border border-slate-200 shadow-sm;
+  }
+  .kort-rubrik {
+    @apply flex items-baseline justify-between gap-3 px-4 py-3 border-b border-slate-200;
+  }
+  .kort-rubrik h2 {
+    @apply text-sm font-semibold text-slate-900 tracking-tight;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap;
+  }
+
+  .tabell {
+    @apply w-full text-sm border-collapse;
+  }
+  .tabell thead th {
+    @apply text-left text-xs font-semibold uppercase tracking-wide text-slate-500
+           px-4 py-2 border-b border-slate-200 bg-slate-50 align-bottom;
+  }
+  .tabell tbody td {
+    @apply px-4 py-2.5 border-b border-slate-100 align-top;
+  }
+  .tabell tbody tr:hover {
+    @apply bg-brand-50/50;
+  }
+  .tabell tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .num {
+    @apply tabular-nums text-right;
+  }
+
+  .knapp,
+  .knapp-primar,
+  .knapp-sekundar,
+  .knapp-diskret {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md
+           text-sm font-medium transition-colors disabled:opacity-50 cursor-pointer;
+  }
+  .knapp,
+  .knapp-primar,
+  .knapp-sekundar {
+    @apply px-3 py-1.5;
+  }
+  .knapp-primar {
+    @apply bg-brand-700 text-white hover:bg-brand-800;
+  }
+  .knapp-sekundar {
+    @apply bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50;
+  }
+  .knapp-diskret {
+    @apply text-slate-600 hover:bg-slate-100 px-2 py-1 text-xs;
+  }
+
+  .falt {
+    @apply w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm
+           shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500;
+  }
+  .etikett {
+    @apply block text-xs font-medium text-slate-600 mb-1;
+  }
+}
+
+/* Utskriftsvy: rapporten ska kunna skrivas ut eller sparas som PDF
+   och fungera som underlag till nämnd eller länsstyrelse. */
+@media print {
+  .ej-utskrift {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    font-size: 10pt;
+  }
+  .kort {
+    break-inside: avoid;
+    box-shadow: none;
+    border-color: #cbd5e1;
+  }
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .sida-brytning {
+    break-before: page;
+  }
+}
