@@ -7,7 +7,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const dbPath = join(root, "db", "beredskap.db");
+// Sökvägen går att styra med BEREDSKAP_DB, så att tester kan seeda till en
+// egen fil utan att skriva över utvecklingsdatabasen.
+const dbPath = process.env.BEREDSKAP_DB || join(root, "db", "beredskap.db");
 for (const suffix of ["", "-wal", "-shm"]) {
   try { rmSync(dbPath + suffix); } catch {}
 }

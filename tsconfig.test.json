@@ -1,0 +1,26 @@
+{
+  "// Bygger de rena modulerna till .test-build, så att testerna kan importera": "",
+  "// dem direkt. Bara moduler utan server-beroenden står här: resten testas": "",
+  "// mot en seedad databas i stället.": "",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "types": ["node"],
+    "outDir": ".test-build",
+    "rootDir": "src/lib",
+    "strict": true,
+    "skipLibCheck": true,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "files": [
+    "src/lib/behorighet.ts",
+    "src/lib/format.ts",
+    "src/lib/domain.ts",
+    "src/lib/personuppgifter.ts",
+    "src/lib/csv.ts",
+    "src/lib/oidc-token.ts"
+  ]
+}

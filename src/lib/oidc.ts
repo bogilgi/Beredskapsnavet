@@ -1,6 +1,12 @@
 import "server-only";
-import { createHash, createPublicKey, createVerify, randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { all, one, run } from "@/lib/db";
+import {
+  delaToken, kontrolleraKrav, verifieraSignatur, type Jwk,
+} from "@/lib/oidc-token";
+
+// Återexporteras för anroparnas skull: feltypen hör till verifieringen.
+export { FelAutentiseringsmetod } from "@/lib/oidc-token";
 
 /**
  * Federerad inloggning med OpenID Connect.
@@ -13,15 +19,6 @@ import { all, one, run } from "@/lib/db";
  * för organisationer utan konfigurerad leverantör och för leverantörens egen
  * driftpersonal, som annars inte kan logga in någonstans.
  */
-
-/**
- * Inloggningen genomfördes utan den metod organisationen kräver.
- *
- * Egen feltyp, eftersom användaren ska få veta att hen ska logga in med
- * flerfaktor — inte det intetsägande "svaret kunde inte verifieras", som inte
- * säger vad hen ska göra åt saken.
- */
-export class FelAutentiseringsmetod extends Error {}
 
 export type Idp = {
   org_id: number;
@@ -151,14 +148,6 @@ export function stadaBegaranden() {
   run("DELETE FROM oidc_requests WHERE gar_ut < ?", nu());
 }
 
-type Jwk = { kid?: string; kty: string; alg?: string; use?: string; n?: string; e?: string };
-
-const ALGORITM: Record<string, string> = {
-  RS256: "RSA-SHA256",
-  RS384: "RSA-SHA384",
-  RS512: "RSA-SHA512",
-};
-
 /**
  * Verifierar en id-token.
  *
@@ -169,64 +158,19 @@ const ALGORITM: Record<string, string> = {
 export async function verifieraIdToken(
   idToken: string, idp: Idp, d: Discovery, nonce: string,
 ): Promise<Record<string, unknown>> {
-  const delar = idToken.split(".");
-  if (delar.length !== 3) throw new Error("Id-token har fel format.");
-
-  const huvud = JSON.parse(Buffer.from(delar[0], "base64url").toString()) as {
-    alg: string; kid?: string;
-  };
-  // "none" och symmetriska algoritmer accepteras inte: det är den klassiska
-  // vägen förbi signaturkontrollen.
-  const nodeAlg = ALGORITM[huvud.alg];
-  if (!nodeAlg) throw new Error(`Id-token är signerad med ${huvud.alg}, som inte accepteras.`);
+  const delar = delaToken(idToken);
 
   const jwksSvar = await fetch(d.jwks_uri, { cache: "no-store" });
   if (!jwksSvar.ok) throw new Error(`Utfärdaren svarade ${jwksSvar.status} på jwks.`);
   const { keys } = (await jwksSvar.json()) as { keys: Jwk[] };
 
-  const kandidater = keys.filter(
-    (k) => k.kty === "RSA" && (!huvud.kid || !k.kid || k.kid === huvud.kid),
+  verifieraSignatur(delar, keys);
+  kontrolleraKrav(
+    delar.krav,
+    { issuer: idp.issuer, client_id: idp.client_id, krav_amr: idp.krav_amr },
+    nonce,
   );
-  if (kandidater.length === 0) throw new Error("Ingen matchande nyckel hos utfärdaren.");
-
-  const data = Buffer.from(`${delar[0]}.${delar[1]}`);
-  const signatur = Buffer.from(delar[2], "base64url");
-  const giltig = kandidater.some((jwk) => {
-    try {
-      const nyckel = createPublicKey({ key: jwk as never, format: "jwk" });
-      return createVerify(nodeAlg).update(data).verify(nyckel, signatur);
-    } catch {
-      return false;
-    }
-  });
-  if (!giltig) throw new Error("Id-tokens signatur går inte att verifiera.");
-
-  const krav = JSON.parse(Buffer.from(delar[1], "base64url").toString()) as Record<string, unknown>;
-  const nuSek = Math.floor(Date.now() / 1000);
-
-  if (String(krav.iss).replace(/\/$/, "") !== idp.issuer.replace(/\/$/, "")) {
-    throw new Error("Id-tokens iss stämmer inte med utfärdaren.");
-  }
-  const aud = Array.isArray(krav.aud) ? krav.aud : [krav.aud];
-  if (!aud.includes(idp.client_id)) throw new Error("Id-token är utfärdad för en annan klient.");
-  if (typeof krav.exp !== "number" || krav.exp < nuSek) throw new Error("Id-token har gått ut.");
-  if (typeof krav.iat === "number" && krav.iat > nuSek + 300) {
-    throw new Error("Id-token är utfärdad i framtiden.");
-  }
-  if (krav.nonce !== nonce) throw new Error("Id-tokens nonce stämmer inte med begäran.");
-
-  // Flerfaktor ska verifieras mot vad utfärdaren faktiskt gjorde. Att anta att
-  // kommunens katalogtjänst alltid kräver det vore att gissa om en säkerhet
-  // systemet säljs på.
-  if (idp.krav_amr) {
-    const amr = Array.isArray(krav.amr) ? krav.amr.map(String) : [];
-    if (!amr.includes(idp.krav_amr)) {
-      throw new FelAutentiseringsmetod(
-        `Inloggningen genomfördes utan ${idp.krav_amr}. Organisationen kräver det.`,
-      );
-    }
-  }
-  return krav;
+  return delar.krav;
 }
 
 export async function vaxlaKod(

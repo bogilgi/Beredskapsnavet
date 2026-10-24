@@ -7,7 +7,11 @@ import { join } from "node:path";
 const globalForDb = globalThis as unknown as { __beredskapDb?: DatabaseSync };
 
 function open(): DatabaseSync {
-  const db = new DatabaseSync(join(process.cwd(), "db", "beredskap.db"));
+  // Samma styrning som i seed-skriptet: BEREDSKAP_DB pekar ut filen när den
+  // ligger någon annanstans än i projektets db-katalog.
+  const db = new DatabaseSync(
+    process.env.BEREDSKAP_DB || join(process.cwd(), "db", "beredskap.db"),
+  );
   db.exec("PRAGMA foreign_keys = ON");
   return db;
 }

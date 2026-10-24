@@ -27,7 +27,47 @@ npm run db:reset   # skapar och seedar db/beredskap.db
 npm run dev        # http://localhost:4010
 ```
 
-Produktionsbygge: `npm run build && npm start`.
+Produktionsbygge: `npm run build && npm start`. Tester: `npm test`.
+
+Databasens plats går att styra med `BEREDSKAP_DB`.
+
+## Tester
+
+```bash
+npm test        # bygger de rena modulerna och kör sviten
+npm run typecheck
+```
+
+68 tester med Nodes inbyggda `node:test` — inga nya beroenden. Sviten vaktar de
+egenskaper produkten säljs på, inte att koden råkar bete sig som den gör i dag:
+
+- **Isolering mellan kunder.** Att varje tabell med kunddata har `org_id`, att
+  inget `org_id` pekar på en organisation som inte finns, och att kopplingar
+  mellan tabeller håller sig inom samma organisation. Det sista är den isolering
+  som kan gå sönder tyst: en placering som pekar på en befattning i en annan
+  kommun syns inte i gränssnittet men blandar data.
+- **Att kravkatalogen inte har `org_id`.** Ett sådant fält vore början på att
+  katalogen kopieras per kommun igen.
+- **Katalogtypningen.** Att en organisation får exakt de krav som gäller dess
+  huvudman, varken fler eller färre, och att kommun och region inte får samma
+  lista.
+- **Behörighetsmatrisen.** Att krigsplacering är snävare satt än övriga moduler,
+  att kommunledningen inte får ändra någonstans, och att bara administratören
+  har skriv i leverantörsmodulerna.
+- **Registret.** 310 organisationer, 21 län, unika koder, kommunkodens länsprefix,
+  och att varje region har både länsstyrelse och IVO som tillsynsmyndighet.
+- **Tokenvalideringen.** Att `none` och symmetriska algoritmer avvisas, att
+  manipulerade anspråk fångas av signaturkontrollen, och att fel `iss`, `aud`,
+  `exp`, `iat` och `nonce` var och en leder till avslag.
+- **Att lösenord lagras som hash med salt** och att bara leverantörens konto har
+  leverantörsflaggan.
+
+Databastesterna kör det skarpa seed-skriptet mot en egen fil via
+`BEREDSKAP_DB`, så de bygger på samma schema och samma data som demon.
+
+Sviten är muterad för att kontrollera att den faktiskt fångar fel: tas
+huvudmannatypningen bort faller tre tester, och öppnas krigsplaceringen för
+förvaltningschefen faller ett.
 
 ## Vad produkten löser
 
@@ -91,7 +131,10 @@ src/lib/personuppgifter.ts  Registerförteckning enligt artikel 30
 src/lib/gallring-actions.ts Gallring, med spärr när fristen inte är beslutad
 src/lib/personalimport.ts   CSV-inläsning, med citerade fält och BOM
 src/lib/import-actions.ts   Import med torrkörning och allt-eller-inget
-src/lib/oidc.ts        Federerad inloggning: PKCE, JWKS och tokenvalidering
+src/lib/oidc.ts        Federerad inloggning: PKCE, nyckelhämtning, kodväxling
+src/lib/oidc-token.ts  Tokenverifiering, fri från nät och databas
+src/lib/csv.ts         CSV-inläsning, fri från server-beroenden
+tests/                 Invarianter: isolering, behörighet, katalog, register
 scripts/test-idp.mjs   OIDC-utfärdare för utveckling. Aldrig i drift.
 scripts/seed.mjs       Demodata för Ängsholms kommun
 src/lib/db.ts          Anslutning, frågehjälpare, spårbarhetslogg
