@@ -1,12 +1,15 @@
 name: Kontroll
 
-# Körs på varje push och varje pull request mot main. Det som kontrolleras är
-# detsamma som ska gå igenom lokalt: typer, tester och produktionsbygget.
+# Det som kontrolleras är detsamma som ska gå igenom lokalt: typer, tester och
+# produktionsbygget.
+#
+# Push bara på main, och pull request för allt annat. Hade push gällt alla
+# grenar skulle varje commit på en gren med öppen pull request kontrolleras
+# två gånger.
 on:
   push:
-    branches: ["**"]
-  pull_request:
     branches: [main]
+  pull_request:
 
 jobs:
   kontroll:
