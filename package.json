@@ -12,7 +12,8 @@
     "test": "tsc -p tsconfig.test.json && node --experimental-sqlite --test \"tests/*.test.mjs\"",
     "test:watch": "node --experimental-sqlite --test --watch \"tests/*.test.mjs\"",
     "tillganglighet": "node scripts/tillganglighet.mjs",
-    "tangentbord": "node scripts/tangentbord.mjs"
+    "tangentbord": "node scripts/tangentbord.mjs",
+    "prov-behorighet": "node --experimental-sqlite scripts/prov-behorighet.mjs"
   },
   "dependencies": {
     "next": "15.5.4",

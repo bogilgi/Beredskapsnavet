@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomBytes } from "node:crypto";
 import { logga, one, run } from "@/lib/db";
-import { kravSkriv } from "@/lib/session";
+import { hamtaAnvandare, kravSkriv } from "@/lib/session";
 import { hashaLosenord, verifieraLosenord, type Anvandare } from "@/lib/session";
 import { ROLLER, type Roll } from "@/lib/behorighet";
 import { svara, type FormSvar } from "@/lib/formsvar";
@@ -136,8 +136,26 @@ async function accepteraInre(formData: FormData): Promise<never> {
 
   let userId: number;
   if (befintlig) {
-    // Kontot finns redan, till exempel för att personen arbetar i en annan
-    // kommun. Då tillkommer bara medlemskapet; lösenordet rörs inte.
+    /*
+     * Kontot finns redan, till exempel för att personen arbetar i en annan
+     * kommun. Då tillkommer bara medlemskapet; lösenordet rörs inte.
+     *
+     * Men inbjudan är bunden till en ADRESS, inte till en person, och koden
+     * visar bara att den som öppnar länken fått länken. Länken lämnas till
+     * den som bjuder in, eftersom installationen inte skickar e-post. För ett
+     * konto som inte finns duger det: den som svarar sätter namn och lösenord
+     * och blir kontot. För ett konto som redan finns duger det inte — då
+     * läggs en roll på någon annans konto, ett konto som kan ha behörighet i
+     * andra organisationer, utan att den personen sagt ja. Ägaren får därför
+     * styrka att det är hon genom att vara inloggad.
+     */
+    const inloggad = await hamtaAnvandare();
+    if (!inloggad || inloggad.id !== befintlig.id) {
+      throw new Error(
+        `${rad.epost} har redan ett konto. Behörigheten läggs bara till av den ` +
+        `som äger kontot: logga in som ${rad.epost} och öppna länken igen.`,
+      );
+    }
     userId = befintlig.id;
   } else {
     const namn = String(formData.get("namn") ?? "").trim();

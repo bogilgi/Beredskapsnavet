@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Formular } from "@/components/formular";
 import { accepteraInbjudan } from "@/lib/inbjudan-actions";
 import { lasInbjudan } from "@/lib/inbjudan";
+import { hamtaAnvandare } from "@/lib/session";
 import { ROLLBESKRIVNING, ROLLNAMN, type Roll } from "@/lib/behorighet";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,13 @@ export default async function Inbjudanssida({
 }) {
   const { i = "", t = "" } = await searchParams;
   const inbjudan = lasInbjudan(Number(i), t);
+
+  // Gäller inbjudan ett konto som redan finns läggs behörigheten bara till av
+  // den som äger kontot, och ägaren styrker det genom att vara inloggad. Samma
+  // villkor som accepteraInbjudan nekar ur; se inbjudan-actions.ts.
+  const inloggad = await hamtaAnvandare();
+  const agaren = Boolean(inbjudan?.har_konto) && inloggad?.epost === inbjudan?.epost;
+  const kraverInloggning = Boolean(inbjudan?.har_konto) && !agaren;
 
   return (
     <div className="min-h-screen bg-brand-800 flex items-center justify-center p-6">
@@ -63,6 +71,27 @@ export default async function Inbjudanssida({
               </p>
 
               <div className="mt-5 pt-5 border-t border-slate-200">
+                {kraverInloggning ? (
+                  <>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Det finns redan ett konto med adressen{" "}
+                      <span className="font-medium text-slate-900">{inbjudan.epost}</span>.
+                      Behörigheten läggs bara till av den som äger kontot, eftersom den
+                      annars hade kunnat läggas på kontot av någon annan. Logga in som{" "}
+                      {inbjudan.epost} och öppna den här länken igen.
+                    </p>
+                    <p className="mt-3 text-xs text-slate-500 leading-relaxed">
+                      Länken gäller i sju dygn och är kvar obesvarad till dess.
+                      {inloggad && inloggad.epost !== inbjudan.epost && (
+                        <> Du är inloggad som {inloggad.epost}.</>
+                      )}
+                    </p>
+                    <Link href="/logga-in" className="knapp-primar mt-5 inline-block">
+                      Till inloggningen
+                    </Link>
+                  </>
+                ) : (
+                <>
                 <Formular
                   action={accepteraInbjudan}
                   knapp={inbjudan.har_konto ? "Lägg till behörigheten" : "Skapa kontot"}
@@ -120,6 +149,8 @@ export default async function Inbjudanssida({
                 <p className="mt-4 text-xs text-slate-500 leading-relaxed">
                   Är du klar? <Link href="/logga-in" className="font-medium text-brand-700 hover:underline">Logga in här</Link>.
                 </p>
+                </>
+                )}
               </div>
             </>
           )}
