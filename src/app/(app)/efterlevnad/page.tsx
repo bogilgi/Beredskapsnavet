@@ -28,6 +28,11 @@ export default async function Efterlevnadssida() {
   const krav = hamtaKrav(orgId);
   const org = hamtaOrganisation(orgId);
 
+  // Katalogen är gemensam för alla kunder, men en region har andra skyldigheter
+  // än en kommun. Rubriken ska därför tala om rätt huvudman.
+  const huvudman = org.typ === "region" ? "Regionens" : "Kommunens";
+  const okontrollerade = krav.filter((k) => !k.kontrollerad).length;
+
   const uppfyllda = krav.filter((k) => k.status === "uppfylld").length;
   const brister = krav.filter((k) => ["brist", "ej_paborjad"].includes(k.status)).length;
   const forsenade = krav.filter(
@@ -42,7 +47,7 @@ export default async function Efterlevnadssida() {
     <>
       <Sidrubrik
         rubrik="Lagkrav och efterlevnad"
-        beskrivning={`Kommunens skyldigheter inom krisberedskap och civilt försvar, med status, ansvarig och vilket underlag som styrker kravet. Listan används vid tillsyn och vid rapportering till länsstyrelsen. Mandatperiod ${org.mandatperiod}.`}
+        beskrivning={`${huvudman} skyldigheter inom krisberedskap och civilt försvar, med status, ansvarig och vilket underlag som styrker kravet. Kravtexten kommer ur den gemensamma katalogen och gäller ${org.typ === "region" ? "regioner" : "kommuner"}; status, ansvarig och underlag är ${org.namn}s egna. Listan används vid tillsyn och vid rapportering till länsstyrelsen. Mandatperiod ${org.mandatperiod}.`}
         atgard={
           <Link href="/rapport" className="knapp-sekundar">
             Ta fram tillsynsunderlag
@@ -50,7 +55,7 @@ export default async function Efterlevnadssida() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mb-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 mb-5">
         <Stat etikett="Uppfyllda krav" varde={uppfyllda} enhet={`av ${krav.length}`} ton="ok" />
         <Stat
           etikett="Brist eller ej påbörjat"
@@ -68,6 +73,12 @@ export default async function Efterlevnadssida() {
           varde={krav.filter((k) => k.giltighet !== "gallande").length}
           ton="info"
           hint="Krav som upphör vid årsskiftet eller som bygger på ett förslag som ännu inte är beslutat."
+        />
+        <Stat
+          etikett="Ej avstämda mot källa"
+          varde={okontrollerade}
+          ton={okontrollerade > 0 ? "varning" : "ok"}
+          hint="Krav i katalogen vars lagrum inte stämts av mot författningstext. Får inte användas som tillsynsunderlag utan kontroll."
         />
       </div>
 
@@ -102,9 +113,20 @@ export default async function Efterlevnadssida() {
                     <div className="font-medium text-slate-900">{k.rubrik}</div>
                     <div className="text-xs text-brand-700 mt-0.5">{k.lagrum}</div>
                     <p className="text-xs text-slate-600 mt-1 leading-relaxed">{k.beskrivning}</p>
+                    {/* Katalogtexten är delad. Det som gäller just den här
+                        organisationen fylls i vid läsning och visas separat. */}
+                    {k.kontext && (
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">{k.kontext}</p>
+                    )}
                     {k.giltighet_not && (
                       <p className="text-xs text-varn-text mt-1 leading-relaxed">
                         {k.giltighet_not}
+                      </p>
+                    )}
+                    {k.lokal_not && (
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                        <span className="font-medium text-slate-700">Egen anteckning:</span>{" "}
+                        {k.lokal_not}
                       </p>
                     )}
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
@@ -120,6 +142,16 @@ export default async function Efterlevnadssida() {
                         >
                           Källa ↗
                         </a>
+                      )}
+                      {/* Ett krav som ingen stämt av mot författningstext får
+                          inte se likadant ut som ett som är avstämt. */}
+                      {k.kontrollerad ? (
+                        <span className="text-slate-500">
+                          Avstämd {datum(k.kontrollerad)}
+                          {k.kontrollerad_av && ` av ${k.kontrollerad_av}`}
+                        </span>
+                      ) : (
+                        <Pill ton="varning">Ej avstämd mot källa</Pill>
                       )}
                       {modul && (
                         <Link href={modul.href} className="font-medium text-brand-700 hover:underline">
@@ -172,12 +204,25 @@ export default async function Efterlevnadssida() {
       </Panel>
 
       <p className="mt-4 text-xs text-slate-500 max-w-3xl leading-relaxed">
-        <Pill ton="info">Observera</Pill> Lagrum, intervall och förfallodatum är kontrollerade mot
-        författningstexten i oktober 2026, och varje rad har en källhänvisning. Kravlistan är ändå
-        en arbetsförteckning och ersätter inte författningstexten. Regelverket är under omarbetning:
-        LEH föreslås ersättas av lagen om kommuners och regioners grundläggande beredskap den
-        1 januari 2027, och överenskommelsen med MCF och SKR löper ut vid samma tid. Kontrollera
-        rättsläget på nytt innan listan används som tillsynsunderlag.
+        <Pill ton="info">Observera</Pill> Kravtexten kommer ur den gemensamma katalogen, som
+        underhålls centralt och är densamma för alla anslutna {org.typ === "region" ? "regioner" : "kommuner"}.
+        Varje rad bär källhänvisning och uppgift om när den senast stämdes av mot författningstext.
+        {okontrollerade > 0 && (
+          <>
+            {" "}
+            <span className="text-varn-text font-medium">
+              {okontrollerade === 1
+                ? "Ett krav är inte avstämt"
+                : `${okontrollerade} krav är inte avstämda`}{" "}
+              mot källa och är markerat som sådant.
+            </span>
+          </>
+        )}{" "}
+        Kravlistan är ändå en arbetsförteckning och ersätter inte författningstexten. Regelverket är
+        under omarbetning: LEH föreslås ersättas av lagen om kommuners och regioners grundläggande
+        beredskap den 1 januari 2027 enligt prop. 2026/27:5, som bereds i försvarsutskottet
+        (bet. 2026/27:FöU5). Kontrollera rättsläget på nytt innan listan används som
+        tillsynsunderlag.
       </p>
     </>
   );

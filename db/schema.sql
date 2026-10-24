@@ -19,6 +19,10 @@ CREATE TABLE organisations (
   tib_telefon       TEXT    NOT NULL,
   uppdaterad        TEXT    NOT NULL,
   ansluten          TEXT    NOT NULL,             -- när kommunen började använda systemet
+  -- Tillsynsmyndighet enligt cybersäkerhetsförordningen (2025:1507). Följer av
+  -- länet, och för en region dessutom av att regionen är vårdgivare. Sätts när
+  -- organisationen läggs upp, eftersom den inte får härledas i varje fråga.
+  tillsyn_cyber     TEXT    NOT NULL DEFAULT '',
   aktiv             INTEGER NOT NULL DEFAULT 1
 );
 
@@ -174,28 +178,60 @@ CREATE TABLE actions (
   skapad        TEXT    NOT NULL
 );
 
--- Lagkrav och överenskommelser med status
-CREATE TABLE requirements (
+-- Lagkrav och överenskommelser.
+--
+-- Katalogen är GEMENSAM för alla organisationer. Lagen är densamma för alla
+-- kommuner och för alla regioner, så kravtexten får bara finnas på ett ställe:
+-- en rättad lagrumshänvisning ska slå igenom hos samtliga kunder samtidigt.
+-- Det som skiljer en organisation från en annan är status, ansvarig, underlag
+-- och förfallodatum, och det ligger i requirement_status.
+CREATE TABLE requirement_catalog (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  kod           TEXT    NOT NULL UNIQUE,
+  rubrik        TEXT    NOT NULL,
+  lagrum        TEXT    NOT NULL,
+  beskrivning   TEXT    NOT NULL DEFAULT '',
+  -- Vissa krav betyder olika saker beroende på organisationens storlek och län
+  -- (storleken avgör om en verksamhetsutövare är väsentlig eller viktig, länet
+  -- avgör tillsynsmyndighet). Sådan text får inte skrivas in i den delade
+  -- beskrivningen. Den ligger här som en mall med platshållare och fylls med
+  -- organisationens egna uppgifter vid läsning, av fyllKontext() i queries.ts.
+  kontextmall   TEXT    NOT NULL DEFAULT '',
+  intervall     TEXT    NOT NULL,             -- mandatperiod | arligen | lopande | engang
+  modul         TEXT    NOT NULL DEFAULT '',  -- vilken modul som styrker kravet
+  kalla_url     TEXT    NOT NULL DEFAULT '',
+  -- gallande | upphor | foreslagen. Ett krav som är på väg att ersättas måste
+  -- synas som sådant, eftersom listan används som tillsynsunderlag.
+  giltighet     TEXT    NOT NULL DEFAULT 'gallande',
+  giltighet_not TEXT    NOT NULL DEFAULT '',
+  -- Vilken typ av huvudman kravet gäller: kommun | region | bada.
+  -- Regioner är inte stora kommuner. De bär katastrofmedicinsk beredskap och
+  -- smittskydd, medan kommunerna bär räddningstjänst och vattenförsörjning.
+  galler_for    TEXT    NOT NULL DEFAULT 'bada',
+  standard_forfallo TEXT,                     -- katalogens förfallodatum, kan åsidosättas per org
+  -- Proveniens. Katalogen säljs som underlag vid tillsyn, och varje rad måste
+  -- därför gå att granska: mot vilken källa den stämdes av, när och av vem.
+  -- Ett krav som inte stämts av mot författningstext ska synas som sådant.
+  kontrollerad      TEXT NOT NULL DEFAULT '',
+  kontrollerad_av   TEXT NOT NULL DEFAULT '',
+  katalogversion    INTEGER NOT NULL DEFAULT 1
+);
+
+-- Organisationens status på ett krav i katalogen. En rad per (org, krav) som
+-- gäller organisationen, skapad när organisationen läggs upp.
+CREATE TABLE requirement_status (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
-  org_id        INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
-  kod               TEXT    NOT NULL,
-  rubrik            TEXT    NOT NULL,
-  lagrum            TEXT    NOT NULL,
-  beskrivning       TEXT    NOT NULL DEFAULT '',
-  intervall         TEXT    NOT NULL,             -- mandatperiod | arligen | lopande | engang
-  status            TEXT    NOT NULL,             -- uppfylld | pagaende | brist | ej_paborjad
+  org_id            INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  krav_id           INTEGER NOT NULL REFERENCES requirement_catalog(id) ON DELETE CASCADE,
+  status            TEXT    NOT NULL DEFAULT 'ej_paborjad', -- uppfylld | pagaende | brist | ej_paborjad
   senast_genomfort  TEXT,
   nasta_forfallo    TEXT,
   ansvarig          TEXT    NOT NULL DEFAULT '',
   evidens           TEXT    NOT NULL DEFAULT '',
-  modul             TEXT    NOT NULL DEFAULT '',  -- vilken modul som styrker kravet
-  -- Källhänvisning till författningstexten, så att varje krav går att granska.
-  kalla_url         TEXT    NOT NULL DEFAULT '',
-  -- gallande | upphor | foreslagen. Lagstiftningen på området ändras, och
-  -- ett krav som är på väg att ersättas måste synas som sådant.
-  giltighet         TEXT    NOT NULL DEFAULT 'gallande',
-  giltighet_not     TEXT    NOT NULL DEFAULT '',
-  UNIQUE (org_id, kod)
+  -- Organisationens egen anteckning. Till skillnad från katalogtexten är den
+  -- lokal, och den följer aldrig med till en annan kommun.
+  lokal_not         TEXT    NOT NULL DEFAULT '',
+  UNIQUE (org_id, krav_id)
 );
 
 -- Användare. I skarp drift ersätts lösenord av federerad inloggning, men
@@ -256,7 +292,9 @@ CREATE INDEX idx_dependencies_org  ON dependencies(org_id);
 CREATE INDEX idx_resources_org     ON resources(org_id);
 CREATE INDEX idx_exercises_org     ON exercises(org_id);
 CREATE INDEX idx_actions_org       ON actions(org_id);
-CREATE INDEX idx_requirements_org  ON requirements(org_id);
+CREATE INDEX idx_reqstatus_org     ON requirement_status(org_id);
+CREATE INDEX idx_reqstatus_krav    ON requirement_status(krav_id);
+CREATE INDEX idx_catalog_galler    ON requirement_catalog(galler_for);
 CREATE INDEX idx_audit_org         ON audit_log(org_id, tidpunkt);
 CREATE INDEX idx_user_orgs_org     ON user_orgs(org_id);
 CREATE INDEX idx_positions_unit    ON positions(unit_id);

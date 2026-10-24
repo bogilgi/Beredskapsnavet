@@ -3,14 +3,19 @@
 Samlat arbetsverktyg för kommunal krisberedskap och civilt försvar. Byggt för den
 roll som idag gör jobbet i Excel och Word: beredskapssamordnaren i en kommun.
 
-En installation betjänar flera kommuner. Demodatan innehåller tre fiktiva
-kommuner i olika mognadsgrad:
+En installation betjänar flera kommuner **och regioner**. Demodatan innehåller
+fyra fiktiva organisationer i olika mognadsgrad:
 
-| Kommun | Invånare | Ansluten | Läge |
-| --- | --- | --- | --- |
-| Ängsholms kommun | 31 420 | mars 2025 | Inarbetad, fylld med data |
-| Nordmarks kommun | 9 840 | januari 2026 | Halvvägs, krigsorganisation ej bemannad |
-| Vreta kommun | 4 215 | september 2026 | Nyansluten, nästan tom |
+| Organisation | Typ | Invånare | Ansluten | Läge |
+| --- | --- | --- | --- | --- |
+| Ängsholms kommun | kommun | 31 420 | mars 2025 | Inarbetad, fylld med data |
+| Nordmarks kommun | kommun | 9 840 | januari 2026 | Halvvägs, krigsorganisation ej bemannad |
+| Vreta kommun | kommun | 4 215 | september 2026 | Nyansluten, nästan tom |
+| Region Västmark | region | 298 400 | november 2025 | Inarbetad, hälso- och sjukvårdens beredskap |
+
+Region Västmark ligger i samma län som Ängsholm, vilket gör skillnaden mellan
+huvudmannatyperna synlig i demon: de får olika kravlistor ur samma katalog, och
+olika tillsynsmyndighet enligt cybersäkerhetsförordningen.
 
 Alla personer, anläggningar och diarienummer är påhittade.
 
@@ -77,7 +82,7 @@ segmentet.
 ### Kodkarta
 
 ```
-db/schema.sql          Datamodell
+db/schema.sql          Datamodell, inkl. delad kravkatalog och status per org
 scripts/seed.mjs       Demodata för Ängsholms kommun
 src/lib/db.ts          Anslutning, frågehjälpare, spårbarhetslogg
 src/lib/queries.ts     Alla läsningar och de automatiska kontrollerna
@@ -90,7 +95,7 @@ src/app/logga-in/      Publik inloggningssida
 src/app/api/export/    CSV-export (semikolon och BOM, för svensk Excel)
 ```
 
-## Flera kommuner i samma installation
+## Flera kommuner och regioner i samma installation
 
 Varje tabell som bär kunddata har en `org_id`, och varje fråga filtrerar på den
 organisation sessionen arbetar i. Sessionen bär alltså både användare och aktiv
@@ -114,11 +119,39 @@ Isoleringen vilar på tre saker:
    aktiva organisationen. En administratör i en kommun ser inte ens att en person
    har behörighet i en annan.
 
-Kravkatalogen är i dag kopierad per kommun. Lagkraven är desamma för alla, så
-nästa steg är en delad katalog med status per organisation, så att en rättad
-lagrumshänvisning slår igenom hos alla på en gång. Det som faktiskt skiljer sig
-mellan kommuner, som antal anställda och vilken länsstyrelse som utövar tillsyn
-enligt cybersäkerhetsförordningen, räknas ut per organisation vid seedning.
+## Den delade kravkatalogen
+
+Lagkraven ligger i en **gemensam katalog** (`requirement_catalog`) som delas av
+alla anslutna organisationer. Status, ansvarig, underlag och förfallodatum ligger
+per organisation (`requirement_status`). Uppdelningen är det som gör produkten
+säljbar i skala: en rättad lagrumshänvisning är en ändring i stället för en per
+kund, och vid omläggningen till LKRB den 1 januari 2027 når uppdateringen alla
+samtidigt.
+
+Katalogen typar varje krav på huvudman i `galler_for`: `kommun`, `region` eller
+`bada`. En region är inte en stor kommun. LEH, säkerhetsskyddslagen,
+totalförsvarsplikten och cybersäkerhetslagen träffar båda, medan vattentjänster
+och styrel sitter hos kommunen och katastrofmedicinsk beredskap och smittskydd
+hos regionen. En organisation får statusrader bara för de krav som gäller dess
+typ, så en kommun ser aldrig regionernas krav och tvärtom.
+
+Några krav betyder olika saker beroende på organisationen: storleken avgör om
+den är väsentlig eller viktig verksamhetsutövare, och länet avgör
+tillsynsmyndighet. Sådan text får inte skrivas in i den delade beskrivningen.
+Den ligger i stället som en `kontextmall` med platshållare och fylls med
+organisationens egna uppgifter vid läsning, av `fyllKontext()` i `queries.ts`.
+Därför kan samma katalograd ge en kommun *"Tillsynsmyndighet är Länsstyrelsen i
+Örebro län"* och en region *"Länsstyrelsen i Örebro län (offentlig förvaltning)
+och Inspektionen för vård och omsorg (vårdgivare)"*.
+
+### Proveniens
+
+Katalogen säljs som underlag vid tillsyn, och varje rad måste därför gå att
+granska. `kontrollerad` och `kontrollerad_av` anger mot vilken källa raden senast
+stämdes av och av vem. **En tom `kontrollerad` betyder att raden inte är avstämd
+mot författningstext**, och raden visas då som *Ej avstämd mot källa* i
+gränssnittet och i CSV-exporten. Ett krav som ingen kontrollerat får inte se
+likadant ut som ett som är kontrollerat.
 
 ## Behörighet
 
@@ -164,11 +197,15 @@ Nekad åtkomst och nekad skrivning loggas med användare, tidpunkt och modul.
 | Systemadministratör | jens.akerlund@angsholm.se | drift2026 | Ängsholm |
 | Beredskapssamordnare | tove.bergqvist@nordmark.se | nordmark2026 | Nordmark |
 | Beredskapssamordnare | johan.stenmark@vreta.se | vreta2026 | Vreta |
+| Beredskapssamordnare, region | helena.krantz@regionvastmark.se | vastmark2026 | Region Västmark |
+| Säkerhetsskyddschef, region | camilla.wahl@regionvastmark.se | sakerhet2026 | Region Västmark |
+| Förvaltningschef, hälso- och sjukvård | ingrid.falk@regionvastmark.se | sjukvard2026 | Region Västmark |
 | Driftansvarig, leverantör | elsa.wikner@beredskapsnavet.se | leverantor2026 | Alla tre, olika roll |
 
-Två demos värda att köra: logga in som kommunledning för att visa att
-ändringsmöjligheter försvinner, och som Elsa för att byta organisation i
-topbaren. Hon är systemadministratör i Nordmark och Vreta men bara
+Tre demos värda att köra: logga in som kommunledning för att visa att
+ändringsmöjligheter försvinner; som Helena Krantz och sedan Marika Öhlund för
+att se att kravlistan skiljer sig mellan region och kommun fast katalogen är
+densamma; och som Elsa för att byta organisation i topbaren. Hon är systemadministratör i Nordmark och Vreta men bara
 kommunledning i Ängsholm, så administrationsmodulen försvinner när hon byter.
 
 ## Vad som återstår före skarp drift
@@ -202,9 +239,18 @@ saknas medvetet:
    Demokommunens tillsynsmyndighet följer av cybersäkerhetsförordningen
    (2025:1507) och är Länsstyrelsen i Örebro län. Den kopplingen mellan län och
    tillsynsmyndighet behöver sättas per kund.
-5. **Delad kravkatalog.** Lagkraven kopieras i dag per kommun. De bör ligga i en
-   gemensam katalog med status per organisation, så att en rättad
-   lagrumshänvisning når alla kunder samtidigt.
-6. **Organisationsadministration.** Nya kommuner och nya konton läggs in genom
+5. **Redaktionellt gränssnitt för katalogen.** Katalogen är delad, men den
+   redigeras i dag genom seedning. Det som saknas är ett gränssnitt där
+   redaktionen kan rätta ett lagrum, versionera ändringen och se vilka kunder
+   den slår igenom hos. `katalogversion` finns i datamodellen men används inte
+   ännu.
+6. **Regionkraven behöver juridisk granskning.** Kraven `HSL-KATASTROF`,
+   `HSL-UTLAND` och `OK-REGION` är avstämda mot källa, men `SMITTSKYDD` saknar
+   verifierad paragrafhänvisning och är markerat som ej avstämt. Dessutom
+   upphörde SOSFS 2013:22 om katastrofmedicinsk beredskap vid utgången av 2025
+   genom HSLF-FS 2025:69, utan att någon motsvarande föreskrift för beredskap
+   inom landet har kunnat bekräftas. Skyldigheten i 7 kap. 2 § HSL kvarstår,
+   men föreskriftsläget måste stämmas av innan listan används vid tillsyn.
+7. **Organisationsadministration.** Nya kommuner och nya konton läggs in genom
    seedning. Ett gränssnitt för att lägga upp en kommun, bjuda in användare och
    ge behörighet saknas.

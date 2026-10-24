@@ -8,7 +8,7 @@ export type Organisation = {
   id: number; kortnamn: string; namn: string; typ: string; lan: string;
   invanare: number; mandatperiod: string; beredskapsniva: string;
   samordnare: string; samordnare_epost: string; tib_telefon: string;
-  uppdaterad: string; ansluten: string; aktiv: number;
+  uppdaterad: string; ansluten: string; tillsyn_cyber: string; aktiv: number;
 };
 
 export type Unit = {
@@ -76,11 +76,24 @@ export type Atgard = {
   forfallodatum: string | null; klar_datum: string | null; skapad: string;
 };
 
+/**
+ * Ett krav som det ser ut för en organisation: den delade katalogtexten plus
+ * organisationens egen status. `id` är statusradens id, eftersom det är den
+ * som skrivs; katalograden ändras bara centralt.
+ */
 export type Krav = {
-  id: number; kod: string; rubrik: string; lagrum: string; beskrivning: string;
+  id: number; krav_id: number;
+  kod: string; rubrik: string; lagrum: string; beskrivning: string;
+  /** Katalogtextens platshållare fyllda med organisationens uppgifter. */
+  kontext: string;
   intervall: string; status: string; senast_genomfort: string | null;
   nasta_forfallo: string | null; ansvarig: string; evidens: string; modul: string;
   kalla_url: string; giltighet: string; giltighet_not: string;
+  galler_for: string;
+  /** Tomt när kravet inte är avstämt mot författningstext. */
+  kontrollerad: string; kontrollerad_av: string;
+  /** Organisationens egen anteckning. Delas aldrig med andra organisationer. */
+  lokal_not: string;
 };
 
 export type Konflikt = {
@@ -318,13 +331,61 @@ export const hamtaAtgarder = (orgId: number) =>
 
 /* ------------------------------------------------------------------- lagkrav */
 
-export const hamtaKrav = (orgId: number) =>
-  all<Krav>(`
-    SELECT * FROM requirements
-    WHERE org_id = ?
-    ORDER BY CASE status WHEN 'brist' THEN 1 WHEN 'ej_paborjad' THEN 2
-      WHEN 'pagaende' THEN 3 ELSE 4 END, nasta_forfallo IS NULL, nasta_forfallo
+/**
+ * Fyller katalogens kontextmall med organisationens egna uppgifter.
+ *
+ * Katalogtexten är delad, men några krav betyder olika saker beroende på hur
+ * stor organisationen är och i vilket län den ligger: storleken avgör om den
+ * är väsentlig eller viktig verksamhetsutövare, länet avgör tillsynsmyndighet.
+ * Sådan text får därför inte skrivas in i den delade beskrivningen, utan fylls
+ * här vid läsning.
+ */
+function fyllKontext(mall: string, org: Organisation, anstallda: number): string {
+  if (!mall) return "";
+  // Gränsen för medelstor går vid 250 anställda enligt EU:s definition, som
+  // cybersäkerhetslagen bygger på.
+  const vasentlig = anstallda > 250;
+  const siffra = (n: number) => n.toLocaleString("sv-SE");
+  return mall
+    .replaceAll("{namn}", org.namn)
+    .replaceAll("{typ}", org.typ)
+    .replaceAll("{lan}", org.lan)
+    .replaceAll("{invanare}", siffra(org.invanare))
+    .replaceAll("{anstallda}", siffra(anstallda))
+    .replaceAll("{storlek}", vasentlig ? "väsentlig" : "viktig")
+    .replaceAll("{storleksgrund}", vasentlig ? "större än medelstor" : "medelstor eller mindre")
+    .replaceAll("{tillsyn}", org.tillsyn_cyber || "den myndighet som anges i förordningen");
+}
+
+/**
+ * Organisationens kravlista: den delade katalogen sammanfogad med
+ * organisationens status. Bara de krav som gäller organisationens
+ * huvudmannatyp får en statusrad, så filtreringen sker redan vid upplägget.
+ */
+export function hamtaKrav(orgId: number): Krav[] {
+  const org = hamtaOrganisation(orgId);
+  const anstallda =
+    one<{ v: number }>("SELECT COALESCE(SUM(anstallda), 0) AS v FROM units WHERE org_id = ?", orgId)
+      ?.v ?? 0;
+
+  const rader = all<Krav & { kontextmall: string }>(`
+    SELECT s.id, s.krav_id, s.status, s.senast_genomfort, s.nasta_forfallo,
+           s.ansvarig, s.evidens, s.lokal_not,
+           k.kod, k.rubrik, k.lagrum, k.beskrivning, k.kontextmall, k.intervall,
+           k.modul, k.kalla_url, k.giltighet, k.giltighet_not, k.galler_for,
+           k.kontrollerad, k.kontrollerad_av
+    FROM requirement_status s
+    JOIN requirement_catalog k ON k.id = s.krav_id
+    WHERE s.org_id = ?
+    ORDER BY CASE s.status WHEN 'brist' THEN 1 WHEN 'ej_paborjad' THEN 2
+      WHEN 'pagaende' THEN 3 ELSE 4 END, s.nasta_forfallo IS NULL, s.nasta_forfallo
   `, orgId);
+
+  return rader.map(({ kontextmall, ...rad }) => ({
+    ...rad,
+    kontext: fyllKontext(kontextmall, org, anstallda),
+  }));
+}
 
 export const hamtaLogg = (orgId: number, gransvarde = 12) =>
   all<{ id: number; tidpunkt: string; anvandare: string; handelse: string; objekt: string }>(
@@ -374,13 +435,13 @@ export function hamtaOversikt(orgId: number): Oversikt {
     foreslagna: num("SELECT COUNT(*) AS v FROM placements WHERE org_id = ? AND status = 'foreslagen'"),
     konflikter: konflikter.length,
     allvarligaKonflikter: konflikter.filter((k) => k.allvarlig).length,
-    kravTotalt: num("SELECT COUNT(*) AS v FROM requirements WHERE org_id = ?"),
+    kravTotalt: num("SELECT COUNT(*) AS v FROM requirement_status WHERE org_id = ?"),
     kravBrist: num(
-      "SELECT COUNT(*) AS v FROM requirements WHERE org_id = ? AND status IN ('brist','ej_paborjad')",
+      "SELECT COUNT(*) AS v FROM requirement_status WHERE org_id = ? AND status IN ('brist','ej_paborjad')",
     ),
-    kravUppfyllda: num("SELECT COUNT(*) AS v FROM requirements WHERE org_id = ? AND status = 'uppfylld'"),
+    kravUppfyllda: num("SELECT COUNT(*) AS v FROM requirement_status WHERE org_id = ? AND status = 'uppfylld'"),
     kravForfaller: num(
-      `SELECT COUNT(*) AS v FROM requirements
+      `SELECT COUNT(*) AS v FROM requirement_status
        WHERE org_id = ? AND nasta_forfallo IS NOT NULL
          AND nasta_forfallo <= date(?, '+90 days') AND status <> 'uppfylld'`,
       d,

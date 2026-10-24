@@ -90,11 +90,15 @@ export async function satKravStatus(id: number, status: string) {
   const a = await kravSkriv("efterlevnad");
   if (!["uppfylld", "pagaende", "brist", "ej_paborjad"].includes(status)) return;
 
+  // Katalogen är delad och ändras bara centralt. Det som skrivs här är
+  // organisationens status på kravet, och den filtreras på organisationen.
   const rad = faltIOrg<{ kod: string }>(
-    "SELECT kod FROM requirements WHERE id = ? AND org_id = ?", id, a.org_id);
+    `SELECT k.kod FROM requirement_status s
+     JOIN requirement_catalog k ON k.id = s.krav_id
+     WHERE s.id = ? AND s.org_id = ?`, id, a.org_id);
   skrivEn(
     "Kunde inte ändra kravet",
-    `UPDATE requirements
+    `UPDATE requirement_status
      SET status = ?, senast_genomfort = CASE WHEN ? = 'uppfylld' THEN ? ELSE senast_genomfort END
      WHERE id = ? AND org_id = ?`,
     status, status, idag(), id, a.org_id,

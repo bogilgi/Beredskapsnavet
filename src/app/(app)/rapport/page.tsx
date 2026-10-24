@@ -58,7 +58,7 @@ export default async function Rapportsida() {
     `Resursförteckningen omfattar ${resurser.length} poster. ${urDrift.length} är ur drift och ${o.resurserKontrollForsenad} har försenad eller okänd kontroll.`,
     `${genomforda.length} övningar har genomförts under mandatperioden, varav ${ovningar.filter((ov) => ov.status === "utvarderad").length} är utvärderade.`,
     `Åtgärdsregistret innehåller ${oppna.length} öppna åtgärder, varav ${forsenade.length} har passerat sitt förfallodatum.`,
-    `${krav.filter((k) => k.giltighet === "upphor").length} av kraven vilar på författningar eller överenskommelser som upphör vid årsskiftet. Regeringen har i proposition 2026/27:5 föreslagit att lagen om kommuners och regioners grundläggande beredskap ska ersätta LEH den 1 januari 2027, och överenskommelsen med Myndigheten för civilt försvar och SKR löper ut 2026. Kommunen bör planera för omställningen under innevarande år.`,
+    `${krav.filter((k) => k.giltighet === "upphor").length} av kraven vilar på författningar eller överenskommelser som upphör vid årsskiftet. Regeringen har i proposition 2026/27:5 föreslagit att lagen om kommuners och regioners grundläggande beredskap ska ersätta LEH den 1 januari 2027, och överenskommelsen med Myndigheten för civilt försvar och SKR löper ut 2026. ${org.typ === "region" ? "Regionen" : "Kommunen"} bör planera för omställningen under innevarande år.`,
   ];
 
   return (

@@ -83,11 +83,17 @@ const EXPORTER: Record<string, (orgId: number) => { namn: string; innehall: stri
   lagkrav: (orgId) => ({
     namn: "lagefterlevnad",
     innehall: csv(
+      // Avstämd/Avstämd av följer med i uttaget, eftersom mottagaren vid en
+      // tillsyn måste kunna se vilka rader som är kontrollerade mot källa.
       ["Kod", "Krav", "Lagrum", "Källa", "Rättslig status", "Anmärkning rättsläge",
-       "Intervall", "Status", "Senast genomfört", "Nästa förfallodatum", "Ansvarig", "Underlag"],
+       "Gäller", "Avstämd", "Avstämd av", "Intervall", "Status", "Senast genomfört",
+       "Nästa förfallodatum", "Ansvarig", "Underlag", "Egen anteckning"],
       hamtaKrav(orgId).map((k) => [
         k.kod, k.rubrik, k.lagrum, k.kalla_url, k.giltighet, k.giltighet_not,
-        k.intervall, k.status, k.senast_genomfort, k.nasta_forfallo, k.ansvarig, k.evidens,
+        k.galler_for === "bada" ? "kommun och region" : k.galler_for,
+        k.kontrollerad || "ej avstämd", k.kontrollerad_av,
+        k.intervall, k.status, k.senast_genomfort, k.nasta_forfallo, k.ansvarig,
+        k.evidens, k.lokal_not,
       ]),
     ),
   }),
