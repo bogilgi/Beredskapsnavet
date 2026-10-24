@@ -19,6 +19,7 @@ db.exec(readFileSync(join(root, "db", "schema.sql"), "utf8"));
 const ORGTABELLER = new Set([
   "units", "positions", "people", "placements", "risks", "critical_functions",
   "dependencies", "resources", "exercises", "actions", "requirement_status",
+  "gallringsregler",
 ]);
 let ORG = null;
 
@@ -1816,6 +1817,53 @@ seedaStatus(VASTMARK, "region", "Helena Krantz", {
   SMITTSKYDD: { status: "uppfylld", senast: "2026-01-08", ansvarig: "Nadia Persson", evidens: "Smittskyddsläkare förordnad, smittskyddsenhet med 6 tjänster" },
   "LKRB-INFOR": { status: "pagaende", ansvarig: "Helena Krantz", evidens: "Gapanalys mot prop. 2026/27:5 påbörjad" },
 });
+
+/* ------------------------------------------- personuppgifter och gallring */
+// Gallringsfristen är ett arkivrättsligt beslut och inte ett förvalt värde, så
+// bara Ängsholm har beslutat någon. De övriga visas som obeslutade, vilket är
+// hur det faktiskt ser ut hos en kommun som nyss infört systemet.
+for (const [org, kategori, frist, av, datum, not] of [
+  [ANGSHOLM, "krigsplacering", 24, "Arkivmyndigheten, KS 2025/88", "2025-04-16",
+   "Två år efter avslutad anställning, enligt dokumenthanteringsplanen."],
+  [ANGSHOLM, "kontaktuppgifter", 12, "Arkivmyndigheten, KS 2025/88", "2025-04-16", ""],
+  [ANGSHOLM, "anvandarkonton", 36, "Arkivmyndigheten, KS 2025/88", "2025-04-16",
+   "Loggen bevaras längre än kontot, av hänsyn till säkerhetsskyddsanalysen."],
+  // Säkerhetsprövning och övningsdeltagande är medvetet obeslutade: det är de
+  // två som brukar fastna, eftersom de rör sig mellan gallring och bevarande.
+  [VASTMARK, "krigsplacering", 24, "Regionarkivet, RS 2026/112", "2026-03-19", ""],
+]) {
+  ORG = org;
+  ins("gallringsregler", {
+    kategori, frist_manader: frist, beslutad_av: av,
+    beslutsdatum: datum, anmarkning: not,
+  });
+}
+
+// Avslutad personal, för att gallringsvyn ska ha något att visa. Personerna
+// väljs ur Ängsholm i stället för att pekas ut med namn, så att demodatan
+// följer med om personallistan ändras. Tre fall visas:
+//   1. mogen för gallring  2. fristen har inte löpt ut  3. placering kvar
+const utanPlacering = db.prepare(`
+  SELECT pe.id FROM people pe
+  WHERE pe.org_id = ? AND NOT EXISTS (
+    SELECT 1 FROM placements pl WHERE pl.person_id = pe.id AND pl.status <> 'avslutad')
+  ORDER BY pe.id LIMIT 2
+`).all(ANGSHOLM);
+
+const medPlacering = db.prepare(`
+  SELECT pe.id FROM people pe
+  WHERE pe.org_id = ? AND EXISTS (
+    SELECT 1 FROM placements pl WHERE pl.person_id = pe.id AND pl.status <> 'avslutad')
+  ORDER BY pe.id DESC LIMIT 1
+`).get(ANGSHOLM);
+
+const satUpphorde = (id, d) =>
+  db.prepare("UPDATE people SET anstallning_upphorde = ? WHERE id = ?").run(d, id);
+
+// Fristen är 24 månader, så 2023 är moget och 2026 är det inte.
+if (utanPlacering[0]) satUpphorde(utanPlacering[0].id, "2023-02-28");
+if (utanPlacering[1]) satUpphorde(utanPlacering[1].id, "2026-08-31");
+if (medPlacering) satUpphorde(medPlacering.id, "2023-06-30");
 
 // Tillsynsmyndigheten följer av länet, och för en region dessutom av att
 // regionen är vårdgivare: enligt cybersäkerhetsförordningen 7 § är IVO

@@ -19,6 +19,7 @@ export const MODULER = [
   "ovningar",
   "rapport",
   "anvandare",
+  "personuppgifter",
   "organisationer",
   "katalog",
 ] as const;
@@ -38,6 +39,7 @@ export const MODULNAMN: Record<Modul, string> = {
   ovningar: "Övning och utbildning",
   rapport: "Beredskapsrapport",
   anvandare: "Användare och behörighet",
+  personuppgifter: "Personuppgifter och gallring",
   organisationer: "Anslutna organisationer",
   katalog: "Kravkatalogen",
 };
@@ -54,6 +56,7 @@ export const MODULVAG: Record<Modul, string> = {
   ovningar: "/ovningar",
   rapport: "/rapport",
   anvandare: "/anvandare",
+  personuppgifter: "/personuppgifter",
   organisationer: "/organisationer",
   katalog: "/katalog",
 };
@@ -107,27 +110,27 @@ const S: Niva = "skriv";
 export const BEHORIGHET: Record<Roll, Record<Modul, Niva>> = {
   administrator: {
     oversikt: S, efterlevnad: S, atgarder: S, krigsorganisation: S, krigsplacering: S,
-    rsa: S, kontinuitet: S, resurser: S, ovningar: S, rapport: S, anvandare: S, organisationer: S, katalog: S,
+    rsa: S, kontinuitet: S, resurser: S, ovningar: S, rapport: S, anvandare: S, personuppgifter: S, organisationer: S, katalog: S,
   },
   beredskapssamordnare: {
     oversikt: S, efterlevnad: S, atgarder: S, krigsorganisation: S, krigsplacering: S,
-    rsa: S, kontinuitet: S, resurser: S, ovningar: S, rapport: S, anvandare: I, organisationer: I, katalog: I,
+    rsa: S, kontinuitet: S, resurser: S, ovningar: S, rapport: S, anvandare: I, personuppgifter: S, organisationer: I, katalog: I,
   },
   sakerhetsskyddschef: {
     oversikt: L, efterlevnad: S, atgarder: S, krigsorganisation: S, krigsplacering: S,
-    rsa: L, kontinuitet: L, resurser: L, ovningar: L, rapport: L, anvandare: I, organisationer: I, katalog: I,
+    rsa: L, kontinuitet: L, resurser: L, ovningar: L, rapport: L, anvandare: I, personuppgifter: S, organisationer: I, katalog: I,
   },
   hr: {
     oversikt: L, efterlevnad: I, atgarder: L, krigsorganisation: L, krigsplacering: S,
-    rsa: I, kontinuitet: I, resurser: I, ovningar: I, rapport: I, anvandare: I, organisationer: I, katalog: I,
+    rsa: I, kontinuitet: I, resurser: I, ovningar: I, rapport: I, anvandare: I, personuppgifter: L, organisationer: I, katalog: I,
   },
   forvaltningschef: {
     oversikt: L, efterlevnad: L, atgarder: S, krigsorganisation: L, krigsplacering: I,
-    rsa: L, kontinuitet: S, resurser: S, ovningar: L, rapport: L, anvandare: I, organisationer: I, katalog: I,
+    rsa: L, kontinuitet: S, resurser: S, ovningar: L, rapport: L, anvandare: I, personuppgifter: I, organisationer: I, katalog: I,
   },
   kommunledning: {
     oversikt: L, efterlevnad: L, atgarder: L, krigsorganisation: L, krigsplacering: L,
-    rsa: L, kontinuitet: L, resurser: L, ovningar: L, rapport: L, anvandare: I, organisationer: I, katalog: I,
+    rsa: L, kontinuitet: L, resurser: L, ovningar: L, rapport: L, anvandare: I, personuppgifter: L, organisationer: I, katalog: I,
   },
 };
 

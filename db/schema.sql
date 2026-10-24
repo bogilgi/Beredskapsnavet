@@ -99,6 +99,10 @@ CREATE TABLE people (
   sakerhetsklass    TEXT    NOT NULL DEFAULT 'ingen',
   registerkontroll  TEXT    NOT NULL DEFAULT 'ej_aktuell', -- ej_aktuell | begard | klar | utgangen
   bortrest_risk     INTEGER NOT NULL DEFAULT 0,
+  -- När anställningen upphörde. Startpunkt för gallringsfristen: en person som
+  -- slutat ska inte ligga kvar i krigsorganisationen, och uppgifterna om
+  -- säkerhetsprövning ska inte sparas längre än kommunen beslutat.
+  anstallning_upphorde TEXT,
   noteringar        TEXT    NOT NULL DEFAULT ''
 );
 
@@ -355,6 +359,27 @@ CREATE TABLE sessions (
 );
 
 CREATE INDEX idx_sessions_user ON sessions(user_id);
+
+-- Gallringsfrister per kategori av personuppgifter.
+--
+-- Fristen är INTE en teknisk inställning utan ett arkivrättsligt beslut.
+-- Kommunens gallring styrs av arkivlagen (1990:782) och kommunens egen
+-- dokumenthanteringsplan, beslutad av arkivmyndigheten. Systemet får därför
+-- inte ha en inbyggd frist som utger sig för att vara lag: raden finns med
+-- frist NULL tills kommunen beslutat, och visas till dess som obeslutad.
+CREATE TABLE gallringsregler (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  org_id          INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  kategori        TEXT    NOT NULL,          -- nyckel i PERSONUPPGIFTER, se personuppgifter.ts
+  -- Antal månader efter att uppgiften blivit inaktuell. NULL = ej beslutad.
+  frist_manader   INTEGER,
+  beslutad_av     TEXT    NOT NULL DEFAULT '',
+  beslutsdatum    TEXT,
+  anmarkning      TEXT    NOT NULL DEFAULT '',
+  UNIQUE (org_id, kategori)
+);
+
+CREATE INDEX idx_gallring_org ON gallringsregler(org_id);
 
 -- Spårbarhet: varje ändring loggas (krav vid tillsyn och säkerhetsskyddsanalys)
 CREATE TABLE audit_log (

@@ -87,6 +87,8 @@ scripts/data/          Nationellt organisationsregister, vendorat med proveniens
 src/lib/katalog-actions.ts  Redaktionen: ändring, avstämning och nya krav
 src/lib/formsvar.ts    Serveråtgärder som svarar med text i stället för att krascha
 src/lib/inbjudan*.ts   Inbjudan av användare, med engångskod och hashad token
+src/lib/personuppgifter.ts  Registerförteckning enligt artikel 30
+src/lib/gallring-actions.ts Gallring, med spärr när fristen inte är beslutad
 scripts/seed.mjs       Demodata för Ängsholms kommun
 src/lib/db.ts          Anslutning, frågehjälpare, spårbarhetslogg
 src/lib/queries.ts     Alla läsningar och de automatiska kontrollerna
@@ -156,6 +158,38 @@ stämdes av och av vem. **En tom `kontrollerad` betyder att raden inte är avst�
 mot författningstext**, och raden visas då som *Ej avstämd mot källa* i
 gränssnittet och i CSV-exporten. Ett krav som ingen kontrollerat får inte se
 likadant ut som ett som är kontrollerat.
+
+## Personuppgifter och gallring
+
+Modulen innehåller en **registerförteckning enligt artikel 30** i
+dataskyddsförordningen: fem kategorier med ändamål, rättslig grund, vilka
+uppgifter som behandlas, vad som utlöser gallringen och vem uppgifterna kan
+lämnas till. Förteckningen ligger i `src/lib/personuppgifter.ts`, av samma skäl
+som behörighetsmatrisen: den är en policy som ska granskas och
+versionshanteras. Den är ett arbetsunderlag och ersätter inte kommunens eget
+dataskyddsarbete — den ska granskas av dataskyddsombudet.
+
+**Gallringsfristerna står inte i koden.** En kommuns gallring styrs av
+arkivlagen (1990:782) och kommunens dokumenthanteringsplan, beslutad av
+arkivmyndigheten. En frist inbyggd i ett system vore en gissning som ser ut som
+ett lagkrav. Fristen beslutas därför per kommun, lagras i `gallringsregler` med
+vem som beslutat den och när, och visas som **obeslutad** tills dess. I
+demodatan är två kategorier medvetet obeslutade: säkerhetsprövning och
+övningsdeltagande, de två som i praktiken brukar fastna eftersom de rör sig
+mellan gallring och bevarande.
+
+Gallring kräver tre saker, och systemet nekar om någon saknas:
+
+1. Att anställningen är registrerad som avslutad.
+2. Att fristen är **beslutad** och har löpt ut.
+3. Att personen inte har en krigsplacering som är öppen. Placeringen ska
+   avslutas först, så att befattningen syns som vakant i stället för att tyst
+   tömmas.
+
+Loggposten noterar kategori, verksamhet och tillämpad frist — men varken namn
+eller personnummer. Att skriva in den gallrade personens namn i
+spårbarhetsloggen skulle göra gallringen meningslös. Det som ska gå att visa vid
+tillsyn är att gallring skett enligt beslutad frist, inte vem den gällde.
 
 ## Inbjudan av användare
 
@@ -340,9 +374,10 @@ saknas medvetet:
    flerfaktorsautentisering. Roller och behörighetsmatris kan vara kvar som de är.
    Lösenordsbyte, kontoskapande och återställning saknas helt, eftersom de
    funktionerna försvinner med federerad inloggning.
-2. **Personuppgiftshantering.** Personnummer visas maskerade och åtkomsten är
-   begränsad per roll, men krigsplacering kräver också dokumenterad rättslig
-   grund och gallringsrutin.
+2. **Personuppgiftshantering: beslut återstår, inte funktion.** Rättslig grund
+   är dokumenterad och gallringsrutinen finns, men fristerna måste beslutas av
+   varje kommuns arkivmyndighet, och förteckningen granskas av
+   dataskyddsombudet. Det är arbete hos kunden, inte i koden.
 3. **Integrationer.** Personalregistret bör hämtas från kommunens HR-system i
    stället för att matas in.
 4. **Bevakning av rättsläget.** Lagrum, intervall och förfallodatum är

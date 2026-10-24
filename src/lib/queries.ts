@@ -481,6 +481,47 @@ export function hamtaOversikt(orgId: number): Oversikt {
   };
 }
 
+/* ------------------------------------------- personuppgifter och gallring */
+
+export type Gallringsregel = {
+  kategori: string;
+  frist_manader: number | null;
+  beslutad_av: string;
+  beslutsdatum: string | null;
+  anmarkning: string;
+};
+
+export const hamtaGallringsregler = (orgId: number) =>
+  all<Gallringsregel>(
+    "SELECT kategori, frist_manader, beslutad_av, beslutsdatum, anmarkning FROM gallringsregler WHERE org_id = ?",
+    orgId,
+  );
+
+export type Gallringsbar = {
+  id: number; namn: string; unit: string; befattning_fred: string;
+  anstallning_upphorde: string; sakerhetsklass: string; registerkontroll: string;
+  /** Placeringar som inte är avslutade. En sådan ska avslutas före gallring. */
+  oppna_placeringar: number;
+};
+
+/**
+ * Personer vars anställning upphört, med underlag för gallringsbedömningen.
+ *
+ * Själva fristen tillämpas inte här utan i gränssnittet, eftersom den är ett
+ * beslut per kommun och kan saknas. En lista som tyst utelämnade personer för
+ * att fristen inte är satt vore värre än en som visar dem som obedömda.
+ */
+export const hamtaGallringsbara = (orgId: number) =>
+  all<Gallringsbar>(`
+    SELECT pe.id, pe.namn, pe.befattning_fred, pe.anstallning_upphorde,
+           pe.sakerhetsklass, pe.registerkontroll, u.namn AS unit,
+      (SELECT COUNT(*) FROM placements pl
+        WHERE pl.person_id = pe.id AND pl.status <> 'avslutad') AS oppna_placeringar
+    FROM people pe JOIN units u ON u.id = pe.unit_id
+    WHERE pe.org_id = ? AND pe.anstallning_upphorde IS NOT NULL
+    ORDER BY pe.anstallning_upphorde
+  `, orgId);
+
 /* ------------------------------------------------------- kravkatalogen */
 
 export type Katalograd = {
