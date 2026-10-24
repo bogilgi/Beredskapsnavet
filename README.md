@@ -85,7 +85,7 @@ npm test        # bygger de rena modulerna och kör sviten
 npm run typecheck
 ```
 
-68 tester med Nodes inbyggda `node:test` — inga nya beroenden. Sviten vaktar de
+91 tester med Nodes inbyggda `node:test` — inga nya beroenden. Sviten vaktar de
 egenskaper produkten säljs på, inte att koden råkar bete sig som den gör i dag:
 
 - **Isolering mellan kunder.** Att varje tabell med kunddata har `org_id`, att
@@ -108,6 +108,11 @@ egenskaper produkten säljs på, inte att koden råkar bete sig som den gör i d
   `exp`, `iat` och `nonce` var och en leder till avslag.
 - **Att lösenord lagras som hash med salt** och att bara leverantörens konto har
   leverantörsflaggan.
+- **Vem som får återställa vems lösenord.** Att ett konto som når utanför den
+  egna organisationen inte går att ta över därifrån — prövat både som regel och
+  med den SQL åtgärden faktiskt frågar.
+- **Att en installation går att skapa utan demodata**, att den inte lämnar
+  något demospår och att kontot den skapar faktiskt går att logga in med.
 
 Databastesterna kör det skarpa seed-skriptet mot en egen fil via
 `BEREDSKAP_DB`, så de bygger på samma schema och samma data som demon.
@@ -115,6 +120,23 @@ Databastesterna kör det skarpa seed-skriptet mot en egen fil via
 Sviten är muterad för att kontrollera att den faktiskt fångar fel: tas
 huvudmannatypningen bort faller tre tester, och öppnas krigsplaceringen för
 förvaltningschefen faller ett.
+
+### Angreppsprov
+
+Tester visar att en regel är riktig. De visar inte att den sitter i vägen.
+
+```bash
+npm run demo              # i en terminal
+npm run prov-behorighet   # i en annan
+```
+
+Provet loggar in som administratör i en kommun, utför de angrepp en
+säkerhetsgranskning hittade — genom gränssnittet, med en riktig session — och
+läser sedan databasen för att se om något faktiskt ändrades. Fjorton
+kontroller. Det är muterat: med spärrarna borta faller nio av dem, och
+angreppen går då hela vägen.
+
+Vad som är granskat, vad som rättats och vad som återstår: `docs/sakerhet.md`.
 
 ## Tillgänglighet
 
@@ -333,6 +355,29 @@ Det som kontrolleras i `src/lib/oidc.ts`:
   systemet säljs på.
 - **`email_verified`**. En adress utfärdaren inte intygat duger inte som
   identitet; den kan vara vad användaren själv skrivit in.
+- **`sub`**, som är obligatoriskt och det kontot binds till.
+
+### Vilken identitet en utfärdare får intyga
+
+Varje organisation konfigurerar sin **egen** utfärdare. Slås kontot bara upp på
+adressen i id-token kan därför var och en av dem intyga vilken adress som helst
+i installationen — adressen står ju i den token utfärdaren själv har skrivit.
+Det var ett verkligt hål i en tidigare version av den här grenen, och det gick
+hela vägen till leverantörens konto. Två saker hindrar det:
+
+- **`org_idp.epost_domaner`** anger vilka e-postdomäner utfärdaren får intyga,
+  kommaseparerat, till exempel `nordmark.se,nordmark.kommun.se`. Underdomäner
+  till en angiven domän godtas. **Tomt tillåter ingenting**: ett tomt fält som
+  betydde "alla domäner" vore samma hål igen, och ett hål man lämnar öppet
+  genom att inte fylla i ett fält. Fältet måste alltså sättas när en kund
+  federeras.
+- **`federated_identities`** binder `(issuer, sub)` till kontot vid den första
+  federerade inloggningen och gäller därefter. Nyckeln är utfärdarens `sub` och
+  inte adressen: en adress kan skrivas om i en katalogtjänst och ges till en
+  annan person, `sub` kan inte.
+
+Ett konto med leverantörsflaggan kan dessutom aldrig logga in via en
+organisations utfärdare, oavsett hur domänerna är konfigurerade.
 
 Behörighet ges genom inbjudan, inte av att någon har ett konto i
 katalogtjänsten: en kommunanställd ska inte automatiskt komma åt
@@ -352,6 +397,16 @@ av användaren själv: installationen skickar ingen e-post — en kommun kör
 systemet i eget nät — så ett självbetjäningsflöde skulle sakna väg att nå
 användaren. Länken gäller i ett dygn, är engångsgiltig, och en tidigare
 obesvarad länk slutar gälla när en ny skapas.
+
+Eftersom länken lämnas till den som begär den är en återställning i praktiken
+en **övertagning av kontot**, och lösenordet sitter på kontot och inte på
+medlemskapet. Den når därför allt kontot når. Återställningen får av det skälet
+bara göras av någon vars behörighet redan täcker kontots: inte ett
+leverantörskonto, inte ett konto med behörighet i en annan organisation, och
+inte alls på ett konto som loggar in mot katalogtjänsten — ett lösenord där
+vore en inloggningsväg förbi kravet på autentiseringsmetod. Konton som inte går
+att återställa räknas upp med skäl i stället för att ligga kvar i listan.
+Regeln står i `src/lib/aterstallningsregel.ts`.
 
 När lösenordet bytts **avslutas kontots alla pågående sessioner**. Har någon
 annan kommit åt kontot ska en återställning kasta ut den, inte låta den sitta
@@ -444,6 +499,15 @@ leverantörsbehörighet: det är en åtgärd inom organisationen.
 Har personen redan ett konto, till exempel för att hen arbetar i en annan
 kommun, tillkommer bara medlemskapet. Lösenordet rörs inte, och den andra
 kommunens behörighet påverkas inte.
+
+Då krävs däremot att **kontots ägare** löser in inbjudan: hen loggar in som
+adressen och öppnar länken, och sidan säger det rakt ut i stället för att
+erbjuda en knapp som vägras. Skälet är att en inbjudan är bunden till en
+adress och inte till en person, och att koden lämnas till den som bjuder in.
+Utan det kravet hade en administratör kunnat bjuda in en adress i en annan
+kommun, lösa in inbjudan själv och ge det kontot en roll i sin organisation
+utan att personen var inblandad. För ett konto som inte finns duger koden: den
+som svarar sätter namn och lösenord och blir kontot.
 
 Koden i länken **lagras aldrig i klartext**, bara som hash med salt. Den som
 läser databasen ska inte kunna ta över en obesvarad inbjudan. Länken visas en
@@ -582,6 +646,11 @@ Nekad åtkomst och nekad skrivning loggas med användare, tidpunkt och modul.
 
 ### Demokonton
 
+Rutan med de här kontona visas på inloggningssidan **bara när databasen
+innehåller demodata**. Lösenorden står här och i `scripts/seed.mjs`, alltså i
+versionshanteringen: de är offentliga. En installation i drift skapas med
+`npm run installera` och får ingen demodata och ingen ruta.
+
 | Konto | E-post | Lösenord | Åtkomst |
 | --- | --- | --- | --- |
 | Beredskapssamordnare | marika.ohlund@angsholm.se | beredskap2026 | Ängsholm |
@@ -638,6 +707,17 @@ Demon är komplett som produktdemo men inte som driftsatt system. Det som
    huvudmannatyp. Den kopplingen behöver alltså inte längre sättas per kund,
    men den bygger på förordningens lydelse och måste ses över när den ändras —
    SFS 2026:623 ändrade förordningen i maj 2026 och är inte genomgången.
+4. **Säkerhetsgranskning av tredje part.** En granskning är gjord inom
+   projektet, och de fyra fel den hittade är rättade och prövade med
+   angreppsprov. Vad som är granskat, vad som rättats och vad som inte är
+   granskat står i `docs/sakerhet.md`. Inför en upphandling där
+   penetrationstest är ett skallkrav behöver ett sådant beställas, och
+   kunden behöver göra sin egen säkerhetsskyddsanalys — systemet innehåller
+   uppgifter om krigsplacering och säkerhetsprövning.
+5. **Hastighetsbegränsning.** Inloggning och inlösen av koder går att försöka
+   med obegränsat ofta. Koderna är långa nog att gissningar inte är vägen in,
+   men en kund som exponerar systemet mot internet bör sätta begränsningen i
+   sin omvända proxy.
 4. **Regionkraven behöver juridisk granskning.** Kraven `HSL-KATASTROF`,
    `HSL-UTLAND` och `OK-REGION` är avstämda mot källa, men `SMITTSKYDD` saknar
    verifierad paragrafhänvisning och är markerat som ej avstämt. Dessutom
