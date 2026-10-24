@@ -56,7 +56,7 @@ export default async function Ovningssida() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">
-        <div className="xl:col-span-2 space-y-5">
+        <div className="xl:col-span-2 min-w-0 space-y-5">
           {ovningar.map((o) => {
             const kopplade = atgarder.filter(
               (a) => a.kalla === "ovning" && a.kalla_ref === o.namn,
@@ -138,7 +138,7 @@ export default async function Ovningssida() {
           })}
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-5 min-w-0">
           <Panel rubrik="Övningsplan" beskrivning="Kommande övningar i datumordning." padding={false}>
             {planerade.length === 0 ? (
               <Tomt>Inga planerade övningar.</Tomt>

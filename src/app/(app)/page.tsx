@@ -122,7 +122,7 @@ export default async function Oversiktssida() {
         rubrik="Översikt beredskapsläge"
         beskrivning={`${org.namn}, mandatperiod ${org.mandatperiod}. Samlad bild av krigsorganisation, lagefterlevnad, risker och förmåga. Underlaget uppdateras när någon ändrar i en modul.`}
         atgard={
-          <div className="flex items-end gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             {skriv && (
             <div>
               <span className="etikett">Beredskapsläge</span>
@@ -183,7 +183,7 @@ export default async function Oversiktssida() {
 
       <div className="grid gap-5 xl:grid-cols-3">
         <Panel
-          className="xl:col-span-2"
+          className="xl:col-span-2 min-w-0"
           rubrik="Kräver åtgärd nu"
           beskrivning={`${punkter.length} punkter samlade från alla moduler, sorterade efter allvar.`}
           padding={false}
@@ -221,7 +221,7 @@ export default async function Oversiktssida() {
           </ul>
         </Panel>
 
-        <div className="space-y-5">
+        <div className="space-y-5 min-w-0">
           <Panel
             rubrik="Bemanning per verksamhet"
             beskrivning="Beslutade krigsplaceringar mot fastställda platser."
@@ -375,7 +375,7 @@ export default async function Oversiktssida() {
 
       <div className="grid gap-5 xl:grid-cols-3 mt-5">
         <Panel
-          className="xl:col-span-2"
+          className="xl:col-span-2 min-w-0"
           rubrik="Åtgärder närmast i tiden"
           padding={false}
           atgard={

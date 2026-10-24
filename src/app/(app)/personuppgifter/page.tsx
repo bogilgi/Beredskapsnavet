@@ -92,7 +92,7 @@ export default async function Personuppgiftssida() {
         rubrik="Registerförteckning"
         beskrivning="Ändamål, rättslig grund och vad som utlöser gallringen, per kategori. Förteckningen ligger i koden och versionshanteras, eftersom den är en policy som ska kunna granskas."
       >
-        <div className="space-y-5">
+        <div className="space-y-5 min-w-0">
           {PERSONUPPGIFTER.map((k) => {
             const regel = regler[k.nyckel];
             return (

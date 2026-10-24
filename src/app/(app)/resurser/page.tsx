@@ -65,7 +65,7 @@ export default async function Resurssida() {
         />
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-5 min-w-0">
         {kategorier.map((k) => (
           <Panel
             key={k.nyckel}

@@ -34,14 +34,14 @@ export function Panel({
   padding?: boolean;
 }) {
   return (
-    <section className={`kort ${className}`}>
+    <section className={`kort min-w-0 ${className}`}>
       {rubrik && (
         <div className="kort-rubrik">
           <div>
             <h2>{rubrik}</h2>
             {beskrivning && <p className="text-xs text-slate-600 mt-0.5">{beskrivning}</p>}
           </div>
-          {atgard && <div className="shrink-0">{atgard}</div>}
+          {atgard && <div className="shrink-0 max-w-full">{atgard}</div>}
         </div>
       )}
       {/* Ett vågrätt rullbart område måste gå att rulla med tangentbord, annars
@@ -166,7 +166,7 @@ export function Sidrubrik({
 }) {
   return (
     <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
-      <div className="max-w-3xl">
+      <div className="max-w-3xl min-w-0">
         <h1 className="text-xl font-semibold text-slate-900 tracking-tight">{rubrik}</h1>
         {lagrum && (
           <p className="mt-1 text-xs font-medium text-brand-700">{lagrum}</p>
@@ -175,7 +175,7 @@ export function Sidrubrik({
           <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{beskrivning}</p>
         )}
       </div>
-      {atgard && <div className="ej-utskrift shrink-0">{atgard}</div>}
+      {atgard && <div className="ej-utskrift shrink-0 max-w-full">{atgard}</div>}
     </header>
   );
 }

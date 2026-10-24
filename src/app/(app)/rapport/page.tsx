@@ -133,6 +133,7 @@ export default async function Rapportsida() {
 
         <section className="mb-7">
           <h2 className="text-base font-semibold text-slate-900 mb-2">2. Lagefterlevnad</h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -172,12 +173,14 @@ export default async function Rapportsida() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="mb-7 sida-brytning">
           <h2 className="text-base font-semibold text-slate-900 mb-2">
             3. Krigsorganisation och krigsplacering
           </h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -222,6 +225,7 @@ export default async function Rapportsida() {
               </tr>
             </tbody>
           </table>
+          </div>
 
           {konflikter.length > 0 && (
             <div className="mt-3">
@@ -249,6 +253,7 @@ export default async function Rapportsida() {
           <h2 className="text-base font-semibold text-slate-900 mb-2">
             4. Risk- och sårbarhetsanalys
           </h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -277,12 +282,14 @@ export default async function Rapportsida() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="mb-7 sida-brytning">
           <h2 className="text-base font-semibold text-slate-900 mb-2">
             5. Kontinuitet i samhällsviktig verksamhet
           </h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -321,10 +328,12 @@ export default async function Rapportsida() {
               })}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="mb-7">
           <h2 className="text-base font-semibold text-slate-900 mb-2">6. Resursläge</h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -351,10 +360,12 @@ export default async function Rapportsida() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="mb-7 sida-brytning">
           <h2 className="text-base font-semibold text-slate-900 mb-2">7. Övning och utbildning</h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -384,12 +395,14 @@ export default async function Rapportsida() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section>
           <h2 className="text-base font-semibold text-slate-900 mb-2">
             8. Åtgärdsplan ({oppna.length} öppna åtgärder)
           </h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -419,6 +432,7 @@ export default async function Rapportsida() {
               })}
             </tbody>
           </table>
+          </div>
         </section>
 
         <footer className="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500 leading-relaxed">

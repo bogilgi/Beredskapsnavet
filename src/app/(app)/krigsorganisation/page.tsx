@@ -62,7 +62,7 @@ export default async function Krigsorganisationssida() {
         />
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-5 min-w-0">
         {perVerksamhet.map((v) => (
           <Panel
             key={v.id}
@@ -72,7 +72,7 @@ export default async function Krigsorganisationssida() {
             }`}
             padding={false}
             atgard={
-              <div className="w-44">
+              <div className="w-36 sm:w-44">
                 <Matare
                   del={v.placerade}
                   helhet={v.platser}

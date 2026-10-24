@@ -116,9 +116,17 @@ rullbara tabellområden som inte gick att nå med tangentbord. Mätarens `etiket
 är numera **obligatorisk i typen**, så att typkontrollen stoppar ett anrop som
 saknar den — ett maskinellt test hittar ett sådant fel först i efterhand.
 
+Utöver det maskinella är **omflöde vid förstoring** mätt separat, eftersom
+axe-core inte upptäcker det. Varje sida tvingades tidigare minst 972 pixlar
+bred, vilket är ett AA-fel på hela produkten: sidomenyn hade fast bredd,
+rutnätsbarn saknade `min-w-0` och panelrubriker wrappade inte. Samtliga 14
+inloggade sidor klarar nu 320 pixlar — 400 procents förstoring — utan vågrät
+sidrullning. Datatabeller rullar i sina egna fokuserbara områden, vilket
+WCAG 1.4.10 undantar.
+
 **Att noll fel rapporteras är ett golv, inte ett intyg.** Ett maskinellt verktyg
-hittar en del av WCAG. Granskning med skärmläsare, hela tangentbordsvägen,
-förstoring till 200 procent och begriplighet återstår och kräver en människa.
+hittar en del av WCAG. Granskning med skärmläsare, hela tangentbordsvägen och
+begriplighet återstår och kräver en människa.
 Vad som är prövat och vad som inte är det står i
 [`docs/tillganglighet.md`](docs/tillganglighet.md), som är underlag till
 kommunens egen tillgänglighetsredogörelse — den skyldigheten är kommunens, inte

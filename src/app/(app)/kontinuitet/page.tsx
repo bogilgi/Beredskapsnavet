@@ -82,7 +82,7 @@ export default async function Kontinuitetssida() {
 
       <div className="grid gap-5 xl:grid-cols-4 mb-5">
         <Panel
-          className="xl:col-span-3"
+          className="xl:col-span-3 min-w-0"
           rubrik="Samhällsviktig verksamhet"
           beskrivning="Sorterad efter prioritet och storleken på gapet."
           padding={false}
@@ -199,7 +199,7 @@ export default async function Kontinuitetssida() {
         </Panel>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-5 min-w-0">
         {funktioner.map((f) => {
           const egna = beroenden.filter((b) => b.function_id === f.id);
           if (egna.length === 0) return null;
