@@ -62,7 +62,7 @@ export default async function Krigsorganisationssida() {
         />
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-5 min-w-0">
         {perVerksamhet.map((v) => (
           <Panel
             key={v.id}
@@ -72,8 +72,12 @@ export default async function Krigsorganisationssida() {
             }`}
             padding={false}
             atgard={
-              <div className="w-44">
-                <Matare del={v.placerade} helhet={v.platser} />
+              <div className="w-36 sm:w-44">
+                <Matare
+                  del={v.placerade}
+                  helhet={v.platser}
+                  etikett={`Bemanningsgrad för ${v.namn}`}
+                />
               </div>
             }
           >
@@ -103,14 +107,19 @@ export default async function Krigsorganisationssida() {
                       </td>
                       <td className="text-xs text-slate-600">
                         {p.sakerhetsklass === "ingen" ? (
-                          <span className="text-slate-400">–</span>
+                          <span className="text-slate-600">–</span>
                         ) : (
                           <Pill ton="info">{SAKERHETSKLASS[p.sakerhetsklass]}</Pill>
                         )}
                       </td>
                       <td className="num text-slate-700">{p.platser}</td>
                       <td>
-                        <Matare del={p.placerade} helhet={p.platser} visaText={false} />
+                        <Matare
+                          del={p.placerade}
+                          helhet={p.platser}
+                          visaText={false}
+                          etikett={`Bemanning av befattningen ${p.titel}`}
+                        />
                         <div className="mt-1 text-[11px] text-slate-500">
                           {p.placerade} beslutade
                           {p.foreslagna > 0 && (

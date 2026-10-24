@@ -45,6 +45,10 @@ export default async function Rapportsida() {
   const forsenade = oppna.filter((a) => (dagarKvar(a.forfallodatum) ?? 999) < 0);
   const genomforda = ovningar.filter((ov) => ["genomford", "utvarderad"].includes(ov.status));
   const urDrift = resurser.filter((r) => r.status === "ur_drift");
+  // Krav vars lagrum inte stämts av mot författningstext. Rapporten lämnas till
+  // länsstyrelsen och används vid tillsyn, så den får inte påstå att allt är
+  // kontrollerat när det inte är det.
+  const ejAvstamda = krav.filter((k) => !k.kontrollerad);
 
   /* Sammanfattningen skrivs av systemet utifrån aktuell data. */
   const bedomning: string[] = [
@@ -58,7 +62,10 @@ export default async function Rapportsida() {
     `Resursförteckningen omfattar ${resurser.length} poster. ${urDrift.length} är ur drift och ${o.resurserKontrollForsenad} har försenad eller okänd kontroll.`,
     `${genomforda.length} övningar har genomförts under mandatperioden, varav ${ovningar.filter((ov) => ov.status === "utvarderad").length} är utvärderade.`,
     `Åtgärdsregistret innehåller ${oppna.length} öppna åtgärder, varav ${forsenade.length} har passerat sitt förfallodatum.`,
-    `${krav.filter((k) => k.giltighet === "upphor").length} av kraven vilar på författningar eller överenskommelser som upphör vid årsskiftet. Regeringen har i proposition 2026/27:5 föreslagit att lagen om kommuners och regioners grundläggande beredskap ska ersätta LEH den 1 januari 2027, och överenskommelsen med Myndigheten för civilt försvar och SKR löper ut 2026. Kommunen bör planera för omställningen under innevarande år.`,
+    ejAvstamda.length > 0
+      ? `${ejAvstamda.length} av kraven har ett lagrum som inte är avstämt mot författningstext och är markerade som sådana i avsnitt 2. De ska kontrolleras innan rapporten används som tillsynsunderlag.`
+      : "Samtliga följda krav har ett lagrum som är avstämt mot författningstext.",
+    `${krav.filter((k) => k.giltighet === "upphor").length} av kraven vilar på författningar eller överenskommelser som upphör vid årsskiftet. Regeringen har i proposition 2026/27:5 föreslagit att lagen om kommuners och regioners grundläggande beredskap ska ersätta LEH den 1 januari 2027, och överenskommelsen med Myndigheten för civilt försvar och SKR löper ut 2026. ${org.typ === "region" ? "Regionen" : "Kommunen"} bör planera för omställningen under innevarande år.`,
   ];
 
   return (
@@ -66,7 +73,7 @@ export default async function Rapportsida() {
       <div className="ej-utskrift">
         <Sidrubrik
           rubrik="Beredskapsrapport"
-          beskrivning="Samlat underlag för rapportering till länsstyrelsen, redovisning i kommunstyrelsen och som utgångspunkt vid tillsyn. Innehållet genereras ur aktuell data och kan skrivas ut eller sparas som PDF."
+          beskrivning={`Samlat underlag för rapportering till länsstyrelsen, redovisning i ${org.typ === "region" ? "regionstyrelsen" : "kommunstyrelsen"} och som utgångspunkt vid tillsyn. Innehållet genereras ur aktuell data och kan skrivas ut eller sparas som PDF.`}
           atgard={<UtskriftsKnapp />}
         />
 
@@ -126,6 +133,7 @@ export default async function Rapportsida() {
 
         <section className="mb-7">
           <h2 className="text-base font-semibold text-slate-900 mb-2">2. Lagefterlevnad</h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -134,6 +142,7 @@ export default async function Rapportsida() {
                 <th className="w-28">Nästa</th>
                 <th className="w-32">Ansvarig</th>
                 <th className="w-28">Rättslig status</th>
+                <th className="w-28">Avstämd</th>
                 <th className="w-28">Status</th>
               </tr>
             </thead>
@@ -150,6 +159,13 @@ export default async function Rapportsida() {
                   <td>
                     <Status karta={GILTIGHET} nyckel={k.giltighet} />
                   </td>
+                  <td className="text-xs">
+                    {k.kontrollerad ? (
+                      <span className="text-slate-600">{datum(k.kontrollerad)}</span>
+                    ) : (
+                      <span className="text-allv-text font-medium">Ej avstämd</span>
+                    )}
+                  </td>
                   <td>
                     <Status karta={KRAVSTATUS} nyckel={k.status} />
                   </td>
@@ -157,12 +173,14 @@ export default async function Rapportsida() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="mb-7 sida-brytning">
           <h2 className="text-base font-semibold text-slate-900 mb-2">
             3. Krigsorganisation och krigsplacering
           </h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -184,7 +202,11 @@ export default async function Rapportsida() {
                   <td className="num text-slate-700">{b.placerade}</td>
                   <td className="num text-slate-600">{b.foreslagna}</td>
                   <td>
-                    <Matare del={b.placerade} helhet={b.platser} />
+                    <Matare
+                      del={b.placerade}
+                      helhet={b.platser}
+                      etikett={`Bemanningsgrad för ${b.namn}`}
+                    />
                   </td>
                 </tr>
               ))}
@@ -194,11 +216,16 @@ export default async function Rapportsida() {
                 <td className="num">{o.placerade}</td>
                 <td className="num">{o.foreslagna}</td>
                 <td>
-                  <Matare del={o.placerade} helhet={o.platser} />
+                  <Matare
+                    del={o.placerade}
+                    helhet={o.platser}
+                    etikett="Bemanningsgrad för hela krigsorganisationen"
+                  />
                 </td>
               </tr>
             </tbody>
           </table>
+          </div>
 
           {konflikter.length > 0 && (
             <div className="mt-3">
@@ -226,6 +253,7 @@ export default async function Rapportsida() {
           <h2 className="text-base font-semibold text-slate-900 mb-2">
             4. Risk- och sårbarhetsanalys
           </h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -254,12 +282,14 @@ export default async function Rapportsida() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="mb-7 sida-brytning">
           <h2 className="text-base font-semibold text-slate-900 mb-2">
             5. Kontinuitet i samhällsviktig verksamhet
           </h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -298,10 +328,12 @@ export default async function Rapportsida() {
               })}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="mb-7">
           <h2 className="text-base font-semibold text-slate-900 mb-2">6. Resursläge</h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -328,10 +360,12 @@ export default async function Rapportsida() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section className="mb-7 sida-brytning">
           <h2 className="text-base font-semibold text-slate-900 mb-2">7. Övning och utbildning</h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -361,12 +395,14 @@ export default async function Rapportsida() {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section>
           <h2 className="text-base font-semibold text-slate-900 mb-2">
             8. Åtgärdsplan ({oppna.length} öppna åtgärder)
           </h2>
+          <div className="overflow-x-auto" tabIndex={0}>
           <table className="tabell border border-slate-200">
             <thead>
               <tr>
@@ -396,13 +432,28 @@ export default async function Rapportsida() {
               })}
             </tbody>
           </table>
+          </div>
         </section>
 
         <footer className="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500 leading-relaxed">
           Rapporten är genererad ur Beredskapsnavet {idag()} och återger läget vid detta datum.
-          Uppgifter om enskilda medarbetare redovisas maskerade. Lagrum och intervall i avsnitt 2 är
-          kontrollerade mot författningstexten i oktober 2026 och varje krav bär en källhänvisning i
-          systemet. Underlaget ska granskas och beslutas av ansvarig chef innan det lämnas vidare.
+          Uppgifter om enskilda medarbetare redovisas maskerade. Kravtexten i avsnitt 2 kommer ur
+          den gemensamma kravkatalogen, och kolumnen Avstämd anger när varje lagrum senast
+          kontrollerades mot författningstext.{" "}
+          {ejAvstamda.length > 0 ? (
+            <span className="text-allv-text font-medium">
+              {ejAvstamda.length === 1
+                ? "Ett krav är inte avstämt"
+                : `${ejAvstamda.length} krav är inte avstämda`}{" "}
+              och är markerat som sådant:{" "}
+              {ejAvstamda.map((k) => k.kod).join(", ")}. Kontrollera lagrummet innan rapporten
+              används som tillsynsunderlag.
+            </span>
+          ) : (
+            "Samtliga krav är avstämda."
+          )}{" "}
+          Kravlistan är en arbetsförteckning och ersätter inte författningstexten. Underlaget ska
+          granskas och beslutas av ansvarig chef innan det lämnas vidare.
         </footer>
       </article>
     </>

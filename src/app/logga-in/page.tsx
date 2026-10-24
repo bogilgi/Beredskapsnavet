@@ -2,12 +2,24 @@ import { redirect } from "next/navigation";
 import { InloggningsFormular } from "@/components/inloggning";
 import { hamtaAnvandare } from "@/lib/session";
 import { startsida } from "@/lib/behorighet";
-import { hamtaOrganisationer } from "@/lib/queries";
+import { demodataFinns, hamtaOrganisationer } from "@/lib/queries";
+import { hamtaIdpVal } from "@/lib/oidc";
 
 export const dynamic = "force-dynamic";
 
-// Demoinstallationens konton. I skarp drift sker inloggningen mot kommunens
-// katalogtjänst och den här rutan finns inte.
+/*
+ * Demoinstallationens konton.
+ *
+ * Lösenorden står i scripts/seed.mjs och därmed i versionshanteringen: de är
+ * offentliga. Rutan får alltså bara finnas där kontona ändå är offentliga.
+ *
+ * Villkoret läses ur datan, inte ur en flagga: demodatans organisationer har
+ * registry_id null, medan en ansluten kommun alltid pekar ut sin rad i det
+ * nationella registret. En flagga hade varit något att glömma vid
+ * driftsättningen, och det är precis det felet som gör rutan farlig. Se
+ * demodataFinns i queries.ts, och scripts/installera.mjs för en databas utan
+ * demodata.
+ */
 const DEMOKONTON = [
   ["Beredskapssamordnare", "marika.ohlund@angsholm.se", "beredskap2026", "Ängsholm · full åtkomst utom behörigheter"],
   ["HR och personalförsörjning", "sara.molin@angsholm.se", "personal2026", "Ängsholm · endast krigsplacering"],
@@ -15,13 +27,55 @@ const DEMOKONTON = [
   ["Systemadministratör", "jens.akerlund@angsholm.se", "drift2026", "Ängsholm · allt, inklusive behörigheter"],
   ["Beredskapssamordnare", "tove.bergqvist@nordmark.se", "nordmark2026", "Nordmark · ser inga andra kommuner"],
   ["Beredskapssamordnare", "johan.stenmark@vreta.se", "vreta2026", "Vreta · nyansluten kommun, nästan tom"],
-  ["Driftansvarig hos leverantören", "elsa.wikner@beredskapsnavet.se", "leverantor2026", "Tre kommuner, olika roll i varje"],
+  ["Beredskapssamordnare, region", "helena.krantz@regionvastmark.se", "vastmark2026", "Region Västmark · andra lagkrav än en kommun"],
+  ["Driftansvarig hos leverantören", "elsa.wikner@beredskapsnavet.se", "leverantor2026", "Alla fyra · registret och kravkatalogen"],
 ];
 
-export default async function Inloggningssida() {
+/**
+ * Besked vid misslyckad federerad inloggning.
+ *
+ * Texterna skiljer på vad användaren kan göra något åt och vad hen inte kan
+ * det. Att svara "fel uppgifter" när utfärdaren är nere skickar folk till
+ * lösenordsåterställning i onödan.
+ */
+const FELTEXT: Record<string, string> = {
+  avbruten: "Inloggningen avbröts.",
+  "okand-organisation": "Organisationen har ingen federerad inloggning konfigurerad.",
+  utfardare:
+    "Organisationens katalogtjänst gick inte att nå. Det är inte dina uppgifter som är fel — försök igen om en stund, eller kontakta kommunens IT-avdelning.",
+  "ofullstandigt-svar": "Svaret från katalogtjänsten var ofullständigt. Försök igen.",
+  "utgangen-begaran":
+    "Inloggningen tog för lång tid eller påbörjades i en annan flik. Börja om härifrån.",
+  "kraver-mfa":
+    "Organisationen kräver flerfaktorsautentisering. Logga in på nytt och genomför andrafaktorn — ett lösenord räcker inte här.",
+  verifiering:
+    "Svaret från katalogtjänsten kunde inte verifieras. Inloggningen har därför nekats.",
+  "epost-ej-verifierad":
+    "Katalogtjänsten har inte verifierat e-postadressen, och den kan därför inte användas som identitet.",
+  "saknar-epost": "Katalogtjänsten lämnade ingen e-postadress. Kontakta kommunens IT-avdelning.",
+  "doman-ej-tillaten":
+    "E-postadressen ligger utanför de domäner organisationens katalogtjänst får intyga. Det är inte dina uppgifter som är fel — kontakta kommunens IT-avdelning.",
+  "ofullstandig-federering":
+    "Den federerade inloggningen är inte färdigkonfigurerad: ingen e-postdomän är angiven för organisationens katalogtjänst. Kontakta leverantören.",
+  "leverantorskonto-federerat":
+    "Kontot tillhör leverantörens driftpersonal och kan inte logga in via en organisations katalogtjänst. Använd lösenordsinloggningen.",
+  avaktiverat: "Kontot är avaktiverat.",
+  "saknar-behorighet":
+    "Du har ingen behörighet i organisationen. Be organisationens administratör bjuda in dig.",
+  okant: "Inloggningen gick inte att genomföra.",
+};
+
+export default async function Inloggningssida({
+  searchParams,
+}: {
+  searchParams: Promise<{ valkommen?: string; fel?: string; aterstallt?: string }>;
+}) {
+  const { valkommen, fel, aterstallt } = await searchParams;
   const anvandare = await hamtaAnvandare();
   if (anvandare) redirect(startsida(anvandare.roll));
   const organisationer = hamtaOrganisationer();
+  const federerade = hamtaIdpVal();
+  const demo = demodataFinns();
 
   return (
     <div className="min-h-screen bg-brand-800 flex items-center justify-center p-6">
@@ -55,11 +109,59 @@ export default async function Inloggningssida() {
         </div>
 
         <div className="lg:col-span-3 space-y-4">
+          {/* Besked till den som just besvarat en inbjudan. Länken är förbrukad
+              i det läget, så bekräftelsen hör hemma här och inte där. */}
+          {valkommen && (
+            <div role="status" className="kort p-4 border-l-4 border-ok-solid">
+              <p className="text-sm text-slate-800 leading-relaxed">
+                <span className="font-medium">Kontot är klart.</span> Du har nu behörighet till{" "}
+                {valkommen}. Logga in med din e-postadress och det lösenord du valde.
+              </p>
+            </div>
+          )}
+
+          {aterstallt && (
+            <div role="status" className="kort p-4 border-l-4 border-ok-solid">
+              <p className="text-sm text-slate-800 leading-relaxed">
+                <span className="font-medium">Lösenordet är bytt.</span> Alla tidigare sessioner
+                på kontot har avslutats. Logga in med det nya lösenordet.
+              </p>
+            </div>
+          )}
+
+          {fel && (
+            <div role="alert" className="kort p-4 border-l-4 border-allv-solid">
+              <p className="text-sm text-slate-800 leading-relaxed">{FELTEXT[fel] ?? FELTEXT.okant}</p>
+            </div>
+          )}
+
           <div className="kort p-6">
             <h1 className="text-lg font-semibold text-slate-900 mb-4">Logga in</h1>
+
+            {federerade.length > 0 && (
+              <div className="mb-5 pb-5 border-b border-slate-200">
+                <div className="space-y-2">
+                  {federerade.map((f) => (
+                    <a
+                      key={f.kortnamn}
+                      href={`/api/auth/start?org=${encodeURIComponent(f.kortnamn)}`}
+                      className="knapp-primar block text-center"
+                    >
+                      {f.knapptext}
+                    </a>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-slate-500 leading-relaxed">
+                  Inloggningen sker mot organisationens katalogtjänst. Lösenordet lämnar aldrig
+                  den, och flerfaktor hanteras där.
+                </p>
+              </div>
+            )}
+
             <InloggningsFormular />
           </div>
 
+          {demo && (
           <div className="kort p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
               Demoinstallation – konton att prova
@@ -87,6 +189,7 @@ export default async function Inloggningssida() {
               byta mellan kommuner i topbaren. Spärrarna sitter på servern, inte i gränssnittet.
             </p>
           </div>
+          )}
         </div>
       </div>
     </div>

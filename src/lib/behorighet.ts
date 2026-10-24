@@ -19,6 +19,9 @@ export const MODULER = [
   "ovningar",
   "rapport",
   "anvandare",
+  "personuppgifter",
+  "organisationer",
+  "katalog",
 ] as const;
 
 export type Modul = (typeof MODULER)[number];
@@ -36,6 +39,9 @@ export const MODULNAMN: Record<Modul, string> = {
   ovningar: "Övning och utbildning",
   rapport: "Beredskapsrapport",
   anvandare: "Användare och behörighet",
+  personuppgifter: "Personuppgifter och gallring",
+  organisationer: "Anslutna organisationer",
+  katalog: "Kravkatalogen",
 };
 
 export const MODULVAG: Record<Modul, string> = {
@@ -50,6 +56,9 @@ export const MODULVAG: Record<Modul, string> = {
   ovningar: "/ovningar",
   rapport: "/rapport",
   anvandare: "/anvandare",
+  personuppgifter: "/personuppgifter",
+  organisationer: "/organisationer",
+  katalog: "/katalog",
 };
 
 export const ROLLER = [
@@ -92,31 +101,36 @@ const S: Niva = "skriv";
 /**
  * Krigsplaceringsmodulen innehåller personuppgifter och uppgifter om
  * säkerhetsprövning. Den är därför snävare satt än övriga moduler.
+ *
+ * Modulerna organisationer och katalog har skriv endast för administrator, men
+ * rollen räcker inte: de kräver dessutom att användaren är leverantörspersonal.
+ * Se kravLeverantor() i session.ts. Katalogen är delad av alla kunder, så en
+ * ändring där är inte en åtgärd inom en organisation utan över alla.
  */
 export const BEHORIGHET: Record<Roll, Record<Modul, Niva>> = {
   administrator: {
     oversikt: S, efterlevnad: S, atgarder: S, krigsorganisation: S, krigsplacering: S,
-    rsa: S, kontinuitet: S, resurser: S, ovningar: S, rapport: S, anvandare: S,
+    rsa: S, kontinuitet: S, resurser: S, ovningar: S, rapport: S, anvandare: S, personuppgifter: S, organisationer: S, katalog: S,
   },
   beredskapssamordnare: {
     oversikt: S, efterlevnad: S, atgarder: S, krigsorganisation: S, krigsplacering: S,
-    rsa: S, kontinuitet: S, resurser: S, ovningar: S, rapport: S, anvandare: I,
+    rsa: S, kontinuitet: S, resurser: S, ovningar: S, rapport: S, anvandare: I, personuppgifter: S, organisationer: I, katalog: I,
   },
   sakerhetsskyddschef: {
     oversikt: L, efterlevnad: S, atgarder: S, krigsorganisation: S, krigsplacering: S,
-    rsa: L, kontinuitet: L, resurser: L, ovningar: L, rapport: L, anvandare: I,
+    rsa: L, kontinuitet: L, resurser: L, ovningar: L, rapport: L, anvandare: I, personuppgifter: S, organisationer: I, katalog: I,
   },
   hr: {
     oversikt: L, efterlevnad: I, atgarder: L, krigsorganisation: L, krigsplacering: S,
-    rsa: I, kontinuitet: I, resurser: I, ovningar: I, rapport: I, anvandare: I,
+    rsa: I, kontinuitet: I, resurser: I, ovningar: I, rapport: I, anvandare: I, personuppgifter: L, organisationer: I, katalog: I,
   },
   forvaltningschef: {
     oversikt: L, efterlevnad: L, atgarder: S, krigsorganisation: L, krigsplacering: I,
-    rsa: L, kontinuitet: S, resurser: S, ovningar: L, rapport: L, anvandare: I,
+    rsa: L, kontinuitet: S, resurser: S, ovningar: L, rapport: L, anvandare: I, personuppgifter: I, organisationer: I, katalog: I,
   },
   kommunledning: {
     oversikt: L, efterlevnad: L, atgarder: L, krigsorganisation: L, krigsplacering: L,
-    rsa: L, kontinuitet: L, resurser: L, ovningar: L, rapport: L, anvandare: I,
+    rsa: L, kontinuitet: L, resurser: L, ovningar: L, rapport: L, anvandare: I, personuppgifter: L, organisationer: I, katalog: I,
   },
 };
 

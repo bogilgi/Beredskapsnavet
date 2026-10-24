@@ -23,6 +23,8 @@ export type Anvandare = {
   roll: string;
   unit_id: number | null;
   antal_organisationer: number;
+  /** 1 för driftpersonal hos leverantören. Styr åtkomst utanför organisationen. */
+  leverantor: number;
 };
 
 export type Medlemskap = {
@@ -30,7 +32,7 @@ export type Medlemskap = {
   kortnamn: string;
   namn: string;
   lan: string;
-  invanare: number;
+  invanare: number | null;
   roll: string;
 };
 
@@ -145,7 +147,7 @@ export async function hamtaAnvandare(): Promise<Anvandare | null> {
   if (!id) return null;
 
   const rad = one<Anvandare & { gar_ut: string; senast_aktiv: string; aktiv: number }>(
-    `SELECT u.id, u.namn, u.epost, u.aktiv,
+    `SELECT u.id, u.namn, u.epost, u.aktiv, u.leverantor,
             s.org_id, s.gar_ut, s.senast_aktiv,
             o.namn AS org_namn, o.kortnamn AS org_kortnamn,
             uo.roll, uo.unit_id,
@@ -200,6 +202,24 @@ export async function kravLas(modul: Modul): Promise<Anvandare> {
  * Spärr för skrivning. Anropas först i varje serveråtgärd. Returnerad användare
  * bär org_id, som varje skrivning ska filtrera på.
  */
+/**
+ * Spärr för åtgärder som sträcker sig utanför den egna organisationen, som att
+ * lägga upp en ny kund.
+ *
+ * Rollen räcker inte. En administratör i en kommun är administratör där, inte
+ * i installationen som helhet, och ska varken kunna lägga upp nya
+ * organisationer eller se vilka andra kommuner som är kunder. Därför krävs
+ * både skrivbehörighet i modulen och leverantörsflaggan på kontot.
+ */
+export async function kravLeverantor(modul: Modul): Promise<Anvandare> {
+  const anvandare = await kravInloggad();
+  if (!farSkriva(anvandare.roll, modul) || anvandare.leverantor !== 1) {
+    logga(anvandare.org_id, anvandare.namn, "Nekad leverantörsåtgärd", modul);
+    redirect(`/ingen-behorighet?modul=${modul}`);
+  }
+  return anvandare;
+}
+
 export async function kravSkriv(modul: Modul): Promise<Anvandare> {
   const anvandare = await kravInloggad();
   if (!farSkriva(anvandare.roll, modul)) {

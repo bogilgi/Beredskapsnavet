@@ -54,7 +54,7 @@ export default async function Atgardssida() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-4">
-        <div className="xl:col-span-3">
+        <div className="xl:col-span-3 min-w-0">
           <Panel
             rubrik="Åtgärder"
             beskrivning="Sorterade efter status, prioritet och förfallodatum."
@@ -130,7 +130,7 @@ export default async function Atgardssida() {
           </Panel>
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-5 min-w-0">
           {skriv && (
           <Panel rubrik="Ny åtgärd" className="ej-utskrift">
             <form action={skapaAtgard} className="space-y-3">
@@ -163,7 +163,7 @@ export default async function Atgardssida() {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="etikett" htmlFor="prioritet">Prioritet</label>
                   <select id="prioritet" name="prioritet" className="falt" defaultValue="normal">

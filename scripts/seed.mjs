@@ -2,12 +2,72 @@
 // Kör: npm run db:reset
 import { DatabaseSync } from "node:sqlite";
 import { randomBytes, scryptSync } from "node:crypto";
-import { readFileSync, rmSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const dbPath = join(root, "db", "beredskap.db");
+// Sökvägen går att styra med BEREDSKAP_DB, så att tester kan seeda till en
+// egen fil utan att skriva över utvecklingsdatabasen.
+const dbPath = process.env.BEREDSKAP_DB || join(root, "db", "beredskap.db");
+
+/*
+ * Seedningen RADERAR databasen och bygger den på nytt. Det är avsikten vid
+ * utveckling och demonstration, men på en driftsatt installation vore det
+ * oåterkalleligt: kunddata, krigsplaceringar, personuppgifter och
+ * spårbarhetslogg. npm run demo kör seedningen, och ett felriktat kommando
+ * ska inte kunna kosta det.
+ *
+ * Signalen att det är skarp drift är att någon organisation är ansluten ur det
+ * nationella registret. Demodatans organisationer är påhittade och har
+ * registry_id null, så kontrollen skiljer dem åt utan att gissa.
+ */
+function kontrolleraAttDetFarRaderas() {
+  if (process.env.BEREDSKAP_SEED_FORCE === "ja") return;
+
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "NODE_ENV är production. Seedningen raderar databasen och vägrar därför köra.\n" +
+      "Är detta avsiktligt: BEREDSKAP_SEED_FORCE=ja npm run db:reset",
+    );
+    process.exit(3);
+  }
+
+  if (!existsSync(dbPath)) return;
+
+  let anslutna = 0;
+  let loggposter = 0;
+  try {
+    const befintlig = new DatabaseSync(dbPath, { readOnly: true });
+    try {
+      anslutna = befintlig
+        .prepare("SELECT COUNT(*) AS v FROM organisations WHERE registry_id IS NOT NULL")
+        .get().v;
+      loggposter = befintlig.prepare("SELECT COUNT(*) AS v FROM audit_log").get().v;
+    } finally {
+      befintlig.close();
+    }
+  } catch {
+    // Filen finns men går inte att läsa som en databas med det här schemat.
+    // Då är den antingen trasig eller från en äldre version, och får skrivas över.
+    return;
+  }
+
+  if (anslutna === 0) return;
+
+  console.error(
+    `Databasen innehåller ${anslutna} organisation(er) som är anslutna ur det ` +
+    `nationella registret, och ${loggposter} poster i spårbarhetsloggen.\n\n` +
+    "Seedningen raderar databasen och bygger den på nytt. Det ser ut som en\n" +
+    "driftsatt installation, inte en demo, så den vägrar köra.\n\n" +
+    "Är detta avsiktligt:  BEREDSKAP_SEED_FORCE=ja npm run db:reset\n" +
+    "Vill du bara demonstrera:  BEREDSKAP_DB=/tmp/demo.db npm run demo\n",
+  );
+  process.exit(3);
+}
+
+kontrolleraAttDetFarRaderas();
+
 for (const suffix of ["", "-wal", "-shm"]) {
   try { rmSync(dbPath + suffix); } catch {}
 }
@@ -18,7 +78,8 @@ db.exec(readFileSync(join(root, "db", "schema.sql"), "utf8"));
 
 const ORGTABELLER = new Set([
   "units", "positions", "people", "placements", "risks", "critical_functions",
-  "dependencies", "resources", "exercises", "actions", "requirements",
+  "dependencies", "resources", "exercises", "actions", "requirement_status",
+  "gallringsregler",
 ]);
 let ORG = null;
 
@@ -36,6 +97,25 @@ const ins = (table, row) => {
   });
   return db.prepare(sql).run(...values).lastInsertRowid;
 };
+
+/* ------------------------------------------------- nationellt organisationsregister */
+// Samtliga kommuner och regioner i landet. Referensdata som delas av alla
+// kunder, och det som gör onboarding till ett val i en lista i stället för ett
+// formulär. Filen är vendorad in i repot med proveniens: registret får inte
+// hämtas över nät vid seedning, eftersom installationen ska gå att köra i ett
+// slutet kommunnät.
+const REGISTER = JSON.parse(
+  readFileSync(join(root, "scripts", "data", "organisationsregister.json"), "utf8"),
+);
+// Demoorganisationerna är påhittade och har med flit ingen rad i registret:
+// de representerar ingen verklig kommun, och registry_id står därför som null.
+const REGISTRY_ID = {};
+for (const r of REGISTER.organisationer) {
+  REGISTRY_ID[r.kod] = ins("org_registry", {
+    kod: r.kod, namn: r.namn, kortnamn: r.kortnamn, typ: r.typ,
+    lan: r.lan, tillsyn_cyber: r.tillsyn_cyber,
+  });
+}
 
 /* -------------------------------------------------------------- organisationer */
 // Installationen betjänar flera kommuner. Ängsholm har arbetat i systemet en
@@ -85,6 +165,25 @@ const VRETA = ins("organisations", {
   tib_telefon: "013-440 00",
   uppdaterad: "2026-10-20",
   ansluten: "2026-09-29",
+  aktiv: true,
+});
+
+// En region i samma län som Ängsholm. Poängen med att ha båda i demon är att
+// de får olika kravlistor ur samma katalog, och olika tillsynsmyndighet:
+// kommunen bara länsstyrelsen, regionen även IVO i egenskap av vårdgivare.
+const VASTMARK = ins("organisations", {
+  kortnamn: "vastmark",
+  namn: "Region Västmark",
+  typ: "region",
+  lan: "Örebro län",
+  invanare: 298400,
+  mandatperiod: "2023-2026",
+  beredskapsniva: "fredstida",
+  samordnare: "Helena Krantz",
+  samordnare_epost: "helena.krantz@regionvastmark.se",
+  tib_telefon: "019-602 00 00",
+  uppdaterad: "2026-10-21",
+  ansluten: "2025-11-17",
   aktiv: true,
 });
 
@@ -489,7 +588,7 @@ for (const [namn, typ, datum, status, malgrupp, deltagare, scenario, krav, erf] 
   ins("exercises", { namn, typ, datum, status, malgrupp, deltagare, scenario, forankrad_lagkrav: krav, erfarenheter: erf });
 }
 
-/* ---------------------------------------------------------------- requirements */
+/* ------------------------------------------------------------- kravkatalogen */
 // Lagrum, intervall och förfallodatum är kontrollerade mot författningstexten
 // i oktober 2026. Varje rad bär källhänvisning och rättslig status, eftersom
 // regelverket på området är under omarbetning.
@@ -822,6 +921,10 @@ const reqRows = [
       "samhällsviktiga och digitala tjänster. Kommunfullmäktige är undantaget. Anmälan görs " +
       "till den gemensamma kontaktpunkten, som enligt cybersäkerhetsförordningen (2025:1507) " +
       "är Försvarets radioanstalt. Ändrade uppgifter ska anmälas inom 14 dagar.",
+    kontextmall:
+      "{namn} bedöms som {storlek} verksamhetsutövare enligt 1 kap. 9 §: verksamheten har " +
+      "cirka {anstallda} anställda och är därmed {storleksgrund}. Tillsynsmyndighet är " +
+      "{tillsyn}, enligt cybersäkerhetsförordningen (2025:1507).",
     url: "https://lagen.nu/2025:1506",
     giltighet: "gallande",
     not: "",
@@ -913,15 +1016,203 @@ const reqRows = [
       "Propositionen lämnades till riksdagen 6 oktober 2026 och bereds i försvarsutskottet " +
       "(bet. 2026/27:FöU5). Riksdagen hade inte fattat beslut när detta underlag sammanställdes.",
   },
+  /* ------------------------------------------------ krav som bara rör regioner */
+  // Regioner bär hälso- och sjukvårdens beredskap ovanpå LEH. Lagrummen nedan
+  // är avstämda mot källa 2026-10-23; se giltighet_not för vad som ändrats.
+  {
+    kod: "HSL-KATASTROF",
+    rubrik: "Katastrofmedicinsk beredskap",
+    lagrum: "Hälso- och sjukvårdslag (2017:30) 7 kap. 2 § tredje stycket",
+    intervall: "lopande",
+    status: "ej_paborjad",
+    senast: null,
+    nasta: null,
+    ansvarig: "",
+    modul: "kontinuitet",
+    evidens: "Underlag saknas",
+    beskrivning:
+      "Regionen ska planera sin hälso- och sjukvård så att en katastrofmedicinsk beredskap " +
+      "upprätthålls. Planeringen ska utgå från regionens risk- och sårbarhetsanalys och " +
+      "omfatta förmåga att hantera allvarlig händelse och masskadeutfall.",
+    url: "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/svensk-forfattningssamling/halso--och-sjukvardslag-201730_sfs-2017-30/",
+    giltighet: "gallande",
+    not:
+      "Socialstyrelsens föreskrifter och allmänna råd (SOSFS 2013:22) om katastrofmedicinsk " +
+      "beredskap upphörde att gälla vid utgången av 2025 genom HSLF-FS 2025:69. HSLF-FS " +
+      "2025:70, som trädde i kraft 1 januari 2026, reglerar endast beredskap för insatser " +
+      "utomlands. Skyldigheten i 7 kap. 2 § HSL kvarstår, men den detaljerade " +
+      "föreskriftsregleringen för beredskap inom landet behöver stämmas av på nytt mot " +
+      "Socialstyrelsens författningssamling innan listan används som tillsynsunderlag.",
+  },
+  {
+    kod: "HSL-UTLAND",
+    rubrik: "Beredskap för katastrofmedicinska insatser utomlands",
+    lagrum:
+      "Lag (2008:552) om katastrofmedicin som en del av svenska insatser utomlands samt " +
+      "HSLF-FS 2025:70",
+    intervall: "lopande",
+    status: "ej_paborjad",
+    senast: null,
+    nasta: null,
+    ansvarig: "",
+    modul: "resurser",
+    evidens: "Underlag saknas",
+    beskrivning:
+      "Regioner med uppdrag att upprätthålla beredskap för katastrofmedicinska insatser " +
+      "utomlands ska kunna leverera personal och materiel på Socialstyrelsens uppdrag med " +
+      "kort varsel, och ge personalen möjlighet att delta i utbildning och övning.",
+    url: "https://www.socialstyrelsen.se/publikationer/hslf-fs-202570-socialstyrelsens-foreskrifter--om-beredskap-for-katastrofmedicinska--insatser-utomlands-2025-12-9934",
+    giltighet: "gallande",
+    not:
+      "HSLF-FS 2025:70 trädde i kraft 1 januari 2026. Kravet gäller de regioner som har " +
+      "uppdraget; övriga regioner får upprätthålla sådan beredskap. Markera kravet som ej " +
+      "tillämpligt om regionen saknar uppdrag.",
+  },
+  {
+    kod: "SMITTSKYDD",
+    rubrik: "Smittskyddsläkare och smittskyddsorganisation",
+    lagrum: "Smittskyddslag (2004:168)",
+    intervall: "lopande",
+    status: "ej_paborjad",
+    senast: null,
+    nasta: null,
+    ansvarig: "",
+    modul: "",
+    evidens: "Underlag saknas",
+    beskrivning:
+      "Regionen ansvarar för att smittskyddsåtgärder vidtas inom regionen, och det ska finnas " +
+      "en smittskyddsläkare. Regionen och smittskyddsläkaren ska se till att allmänheten har " +
+      "tillgång till den information och de råd som behövs för att skydda sig mot smitta som " +
+      "kan hota liv eller hälsa.",
+    url: "https://www.riksdagen.se/sv/dokument-lagar/dokument/_sfs-2004-168",
+    giltighet: "gallande",
+    not:
+      "EJ AVSTÄMD MOT FÖRFATTNINGSTEXT. Paragrafhänvisningen för smittskyddsläkarens " +
+      "tillsättning har inte kunnat verifieras mot Svensk författningssamling, och lagen är " +
+      "ändrad t.o.m. SFS 2025:734. Komplettera lagrummet innan raden används vid tillsyn.",
+  },
+  {
+    kod: "OK-REGION",
+    rubrik: "Överenskommelse om regionernas krisberedskap och civila försvar",
+    lagrum:
+      "Överenskommelse om regionernas arbete med krisberedskap och civilt försvar " +
+      "2024–2026 (MSB och SKR)",
+    intervall: "arligen",
+    status: "ej_paborjad",
+    senast: null,
+    nasta: "2026-12-31",
+    ansvarig: "",
+    modul: "ovningar",
+    evidens: "Underlag saknas",
+    beskrivning:
+      "Regionen ska genomföra de uppgifter som följer av överenskommelsen med MSB och SKR, " +
+      "bland annat risk- och sårbarhetsarbete, planering för civilt försvar, regional " +
+      "samverkan samt tjänsteperson i beredskap, och redovisa arbetet som grund för den " +
+      "statliga ersättningen.",
+    url: "https://skr.se/download/18.7b763b4e18d54c4a4f51e7/1706524982129/WEBB-17-2024-Overenskommelse_regioner_2024-2026-krisberedskap-civilt-forsvar.PDF",
+    giltighet: "upphor",
+    not:
+      "Överenskommelsen löper ut vid utgången av 2026. Vad som gäller därefter beror på " +
+      "riksdagens beslut om LKRB och på en ny överenskommelse, som inte var träffad när " +
+      "detta underlag sammanställdes.",
+  },
 ];
+/* ----------------------------------------------- vilka huvudmän kravet gäller */
+// Lagen är inte densamma för en kommun och en region. LEH, säkerhetsskydds-
+// lagen, totalförsvarsplikten och cybersäkerhetslagen träffar båda, medan
+// vattentjänster och styrel sitter hos kommunen och katastrofmedicinsk
+// beredskap och smittskydd hos regionen.
+const GALLER_FOR = {
+  "LEH-RSA": "bada", "LEH-PLAN": "bada", "LEH-NAMND": "bada", "LEH-SAMV": "bada",
+  "LEH-UTB": "bada", "LEH-RAPP": "bada", "LEH-KRIGSORG": "bada",
+  "TF-KRIGSPL": "bada", "SASK-ANALYS": "bada", "SASK-CHEF": "bada",
+  // Överenskommelsen med MCF och SKR gäller kommunerna. Regionerna har en egen,
+  // se OK-REGION nedan.
+  "OK-KONT": "kommun", "OK-TIB": "kommun",
+  "STYREL": "kommun", "VATTENPLAN": "kommun", "NODVATTEN": "kommun",
+  "NIS2-ANMALAN": "bada", "NIS2-RISK": "bada", "NIS2-LEDNING": "bada",
+  "NIS2-INCIDENT": "bada",
+  "LKRB-INFOR": "bada",
+  "OK-REGION": "region", "HSL-KATASTROF": "region", "HSL-UTLAND": "region",
+  "SMITTSKYDD": "region",
+};
+
+// Proveniens per krav: mot vilken källa raden senast stämdes av. Tom sträng
+// betyder att raden INTE är avstämd mot författningstext, och den visas då
+// som okontrollerad i gränssnittet. Katalogen säljs som tillsynsunderlag, och
+// ett krav som ingen stämt av får inte se likadant ut som ett som är stämt av.
+const KONTROLLERAD = {
+  __standard: { datum: "2026-10-01", av: "Marika Öhlund" },
+  // Avstämda mot källa 2026-10-23, se giltighet_not på respektive rad.
+  "HSL-KATASTROF": { datum: "2026-10-23", av: "Redaktionen" },
+  "HSL-UTLAND": { datum: "2026-10-23", av: "Redaktionen" },
+  "OK-REGION": { datum: "2026-10-23", av: "Redaktionen" },
+  "LKRB-INFOR": { datum: "2026-10-23", av: "Redaktionen" },
+  // Lagrummet för smittskyddsläkarens tillsättning har inte gått att stämma av
+  // mot författningstexten. Raden lämnas medvetet okontrollerad.
+  SMITTSKYDD: { datum: "", av: "" },
+};
+
+/* ------------------------------------------------- den delade kravkatalogen */
+// Katalogen läggs in EN gång och delas av alla organisationer. Det är hela
+// poängen: när ett lagrum ändras rättas det här, och ändringen når varje kund.
+const KRAV_ID = {};
+ORG = null;
 for (const r of reqRows) {
-  ins("requirements", {
+  const k = KONTROLLERAD[r.kod] ?? KONTROLLERAD.__standard;
+  KRAV_ID[r.kod] = ins("requirement_catalog", {
     kod: r.kod, rubrik: r.rubrik, lagrum: r.lagrum, beskrivning: r.beskrivning,
-    intervall: r.intervall, status: r.status, senast_genomfort: r.senast,
-    nasta_forfallo: r.nasta, ansvarig: r.ansvarig, evidens: r.evidens, modul: r.modul,
-    kalla_url: r.url, giltighet: r.giltighet, giltighet_not: r.not,
+    kontextmall: r.kontextmall ?? "",
+    intervall: r.intervall, modul: r.modul, kalla_url: r.url,
+    giltighet: r.giltighet, giltighet_not: r.not,
+    galler_for: GALLER_FOR[r.kod] ?? "bada",
+    standard_forfallo: r.nasta ?? null,
+    kontrollerad: k.datum, kontrollerad_av: k.av,
   });
 }
+
+/* -------------------------------------------- status per organisation */
+// Organisationen får en statusrad för varje krav i katalogen som gäller dess
+// huvudmannatyp. En kommun får aldrig regionernas krav, och tvärtom.
+/**
+ * Gäller kravet den här huvudmannatypen?
+ *
+ * Gotland är en enda juridisk person som fullgör både kommunens och regionens
+ * uppgifter, och får därför båda uppsättningarna.
+ */
+function kravGaller(gallerFor, typ) {
+  if (gallerFor === "bada" || gallerFor === typ) return true;
+  return typ === "kommun_region" && (gallerFor === "kommun" || gallerFor === "region");
+}
+
+function seedaStatus(orgId, typ, standardAnsvarig, overrides) {
+  ORG = orgId;
+  for (const r of reqRows) {
+    const galler = GALLER_FOR[r.kod] ?? "bada";
+    if (!kravGaller(galler, typ)) continue;
+    const o = overrides[r.kod] ?? {};
+    ins("requirement_status", {
+      krav_id: KRAV_ID[r.kod],
+      status: o.status ?? "ej_paborjad",
+      senast_genomfort: o.senast ?? null,
+      nasta_forfallo: o.nasta ?? r.nasta ?? null,
+      ansvarig: o.ansvarig ?? standardAnsvarig,
+      evidens: o.evidens ?? "Underlag saknas",
+      lokal_not: o.not ?? "",
+    });
+  }
+}
+
+// Ängsholms status ligger på kravraderna, eftersom demokommunen skrevs först.
+const ANGSHOLM_STATUS = {};
+for (const r of reqRows) {
+  ANGSHOLM_STATUS[r.kod] = {
+    status: r.status, senast: r.senast, nasta: r.nasta,
+    ansvarig: r.ansvarig, evidens: r.evidens,
+  };
+}
+seedaStatus(ANGSHOLM, "kommun", "Marika Öhlund", ANGSHOLM_STATUS);
+ORG = ANGSHOLM;
 
 /* -------------------------------------------------------------------- actions */
 // [titel, källa, källref, ansvarig, kortnamn, prio, status, förfallo, klar, beskrivning]
@@ -1327,29 +1618,7 @@ for (const [titel, kalla, ref, ansvarig, kort, prio, status, forfallo, beskrivni
   prioritet: prio, status, forfallodatum: forfallo, klar_datum: null, skapad: "2026-10-01",
 });
 
-/* ------------------------------------------- kravkatalog till övriga kommuner */
-// Lagkraven är desamma för alla kommuner, bara statusen skiljer. Katalogen
-// återanvänds därför, med status och underlag satt per kommun. I nästa steg bör
-// katalogen brytas ut till en delad tabell med status per organisation, så att
-// en rättad lagrumshänvisning slår igenom hos alla på en gång.
-function seedaKrav(org, standardAnsvarig, overrides) {
-  ORG = org;
-  for (const r of reqRows) {
-    const o = overrides[r.kod] ?? {};
-    ins("requirements", {
-      kod: r.kod, rubrik: r.rubrik, lagrum: r.lagrum, beskrivning: r.beskrivning,
-      intervall: r.intervall,
-      status: o.status ?? "ej_paborjad",
-      senast_genomfort: o.senast ?? null,
-      nasta_forfallo: r.nasta,
-      ansvarig: o.ansvarig ?? standardAnsvarig,
-      evidens: o.evidens ?? "Underlag saknas",
-      modul: r.modul, kalla_url: r.url, giltighet: r.giltighet, giltighet_not: r.not,
-    });
-  }
-}
-
-seedaKrav(NORDMARK, "Tove Bergqvist", {
+seedaStatus(NORDMARK, "kommun", "Tove Bergqvist", {
   "LEH-RSA": { status: "uppfylld", senast: "2023-09-26", evidens: "RSA 2023, dnr KS 2023/198" },
   "LEH-PLAN": { status: "uppfylld", senast: "2024-03-14", evidens: "Krisledningsplan KF 2024-03-14 § 22" },
   "LEH-NAMND": { status: "uppfylld", senast: "2023-02-07", evidens: "Reglemente KF 2023-02-07 § 9" },
@@ -1372,7 +1641,7 @@ seedaKrav(NORDMARK, "Tove Bergqvist", {
   "LKRB-INFOR": { status: "ej_paborjad", evidens: "Ingen förberedelse påbörjad" },
 });
 
-seedaKrav(VRETA, "Johan Stenmark", {
+seedaStatus(VRETA, "kommun", "Johan Stenmark", {
   "LEH-RSA": { status: "brist", senast: "2023-09-14", evidens: "RSA 2023, ej ombedömd" },
   "LEH-PLAN": { status: "brist", senast: "2019-06-11", evidens: "Krisledningsplan från 2019" },
   "LEH-NAMND": { status: "uppfylld", senast: "2023-01-30", evidens: "Reglemente KF 2023-01-30 § 4" },
@@ -1411,23 +1680,300 @@ const TILLSYN_PER_LAN = {
   "Östergötlands län": "Länsstyrelsen i Östergötlands län",
 };
 
-for (const o of db.prepare("SELECT id, namn, lan FROM organisations").all()) {
-  const anstallda = db
-    .prepare("SELECT COALESCE(SUM(anstallda), 0) AS v FROM units WHERE org_id = ?")
-    .get(o.id).v;
-  // Gränsen för medelstor går vid 250 anställda enligt EU:s definition, som
-  // cybersäkerhetslagen bygger på.
-  const vasentlig = anstallda > 250;
-  const tillsyn = TILLSYN_PER_LAN[o.lan] ?? "den länsstyrelse som anges i förordningen";
-  const tillagg =
-    ` ${o.namn} bedöms som ${vasentlig ? "väsentlig" : "viktig"} verksamhetsutövare enligt ` +
-    `1 kap. 9 §: verksamheten har cirka ${anstallda.toLocaleString("sv-SE")} anställda ` +
-    `och är därmed ` +
-    `${vasentlig ? "större än medelstor" : "medelstor eller mindre"}. Tillsynsmyndighet är ` +
-    `${tillsyn}, som enligt förordningen ansvarar för kommuner i ${o.lan}.`;
-  db.prepare(
-    "UPDATE requirements SET beskrivning = beskrivning || ? WHERE org_id = ? AND kod = 'NIS2-ANMALAN'",
-  ).run(tillagg, o.id);
+/* ============================================================== VÄSTMARK ===== */
+// Region. Bär hälso- och sjukvårdens beredskap ovanpå LEH, och får därför en
+// annan kravlista än kommunerna ur samma katalog.
+ORG = VASTMARK;
+
+const UR = {};
+for (const [namn, kortnamn, typ, chef, sv, anst] of [
+  ["Hälso- och sjukvårdsförvaltningen", "HSF", "forvaltning", "Dr Ingrid Falk", true, 9240],
+  ["Regionservice", "RS", "forvaltning", "Tomas Nyberg", true, 1180],
+  ["Kollektivtrafikförvaltningen", "KTF", "forvaltning", "Marie Löfgren", true, 310],
+  ["Regionkontoret", "RK", "forvaltning", "Helena Krantz", true, 420],
+  ["Folktandvården", "FTV", "bolag", "Dr Samir Haddad", false, 540],
+]) UR[kortnamn] = ins("units", { namn, kortnamn, typ, chef, samhallsviktig: sv, anstallda: anst });
+
+const PR = {};
+for (const [kort, titel, niva, krit, platser, sk, uppgift] of [
+  ["RK", "Regional krisledningschef", "ledning", "A", 1, "1", "Leder regionens krisledning vid allvarlig händelse och höjd beredskap."],
+  ["RK", "Beredskapschef", "ledning", "A", 1, "2", "Samordnar regionens krisberedskap och civila försvar."],
+  ["RK", "Tjänsteperson i beredskap", "ledning", "A", 4, "2", "Nås dygnet runt, initierar regionens krisledning."],
+  ["HSF", "Katastrofmedicinsk ledningsläkare", "ledning", "A", 3, "2", "Medicinsk ledning vid masskadehändelse."],
+  ["HSF", "Regional sjukvårdsledare", "ledning", "A", 3, "2", "Leder sjukvårdsinsats i regional särskild sjukvårdsledning."],
+  ["HSF", "Smittskyddsläkare", "ledning", "A", 1, "2", "Ansvarar för smittskyddet i regionen enligt smittskyddslagen."],
+  ["HSF", "Sjuksköterska, akutmottagning", "operativ", "B", 18, "ingen", "Akut omhändertagande vid masskadeutfall."],
+  ["RS", "Driftchef försörjning", "stab", "A", 1, "3", "Reservkraft, medicinska gaser och förnödenheter."],
+  ["KTF", "Trafikledare i beredskap", "operativ", "B", 2, "ingen", "Omfördelar kollektivtrafik, transportstöd vid evakuering."],
+]) PR[kort + "|" + titel] = ins("positions", {
+  unit_id: UR[kort], titel, niva, kritikalitet: krit, platser, sakerhetsklass: sk, uppgift,
+});
+
+const PER = {};
+for (const [namn, kort, bef, pnr, f] of [
+  ["Helena Krantz", "RK", "Beredskapschef", "19740922-XXXX", { sk: "2", rk: "klar" }],
+  ["Ingrid Falk", "HSF", "Hälso- och sjukvårdsdirektör", "19660408-XXXX", { sk: "1", rk: "klar" }],
+  ["Oskar Rydell", "HSF", "Överläkare akutkliniken", "19800115-XXXX", { sk: "2", rk: "klar" }],
+  ["Nadia Persson", "HSF", "Smittskyddsläkare", "19770630-XXXX", { sk: "2", rk: "utgangen" }],
+  ["Tomas Nyberg", "RS", "Servicedirektör", "19690213-XXXX", { sk: "3", rk: "klar" }],
+  ["Marie Löfgren", "KTF", "Trafikdirektör", "19830507-XXXX", { sk: "3", rk: "begard" }],
+  ["Petra Lindqvist", "HSF", "Avdelningschef IVA", "19880319-XXXX", { sk: "ingen", rk: "ej_aktuell" }],
+  ["Jonas Ek", "RS", "Drifttekniker", "19910824-XXXX", { fm: true, not: "Krigsplacerad i Försvarsmakten sedan 2019. Samråd krävs före beslut." }],
+  ["Camilla Wahl", "RK", "Säkerhetschef", "19720111-XXXX", { sk: "1", rk: "klar" }],
+  ["Henrik Aune", "KTF", "Trafikledare", "19950702-XXXX", { plikt: "Räddningstjänstplikt, deltidsbrandman" }],
+]) {
+  const [f1, f2] = namn.split(" ").map((d) => d.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+  PER[namn] = ins("people", {
+    namn, pnr_maskerat: pnr, unit_id: UR[kort], befattning_fred: bef,
+    epost: `${f1}.${f2}@regionvastmark.se`,
+    telefon: "019-602 " + String(10 + Math.floor(Math.random() * 89)) + " " + String(10 + Math.floor(Math.random() * 89)),
+    anstallningsform: "tillsvidare", fm_krigsplacerad: !!f.fm, annan_plikt: f.plikt || "",
+    sakerhetsklass: f.sk || "ingen", registerkontroll: f.rk || "ej_aktuell",
+    bortrest_risk: !!f.risk, noteringar: f.not || "",
+  });
+}
+
+for (const [pos, person, status, datum, anm] of [
+  ["RK|Regional krisledningschef", "Ingrid Falk", "beslutad", "2026-03-12", ""],
+  ["RK|Beredskapschef", "Helena Krantz", "underrattad", "2026-03-12", "Underrättad 2026-04-02."],
+  ["RK|Tjänsteperson i beredskap", "Camilla Wahl", "beslutad", "2026-03-12", ""],
+  // Dubbelplacering: smittskyddsläkaren är placerad både som ledningsläkare och
+  // på sin egen befattning. Kontrollen i hamtaKonflikter ska fånga det.
+  ["HSF|Katastrofmedicinsk ledningsläkare", "Nadia Persson", "foreslagen", null, "Registerkontrollen är utgången."],
+  ["HSF|Smittskyddsläkare", "Nadia Persson", "beslutad", "2026-03-12", ""],
+  ["HSF|Regional sjukvårdsledare", "Oskar Rydell", "beslutad", "2026-03-12", ""],
+  ["RS|Driftchef försörjning", "Tomas Nyberg", "beslutad", "2026-03-12", ""],
+  // Samrådsplikt mot Försvarsmakten.
+  ["RS|Driftchef försörjning", "Jonas Ek", "foreslagen", null, "Redan krigsplacerad i Försvarsmakten."],
+  ["KTF|Trafikledare i beredskap", "Henrik Aune", "foreslagen", null, "Har räddningstjänstplikt, samråd krävs."],
+]) ins("placements", {
+  position_id: PR[pos], person_id: PER[person], status, beslutsdatum: datum,
+  beslut_av: status === "foreslagen" ? "" : "Regionstyrelsen 2026-03-12 § 31", 
+  underrattad: status === "underrattad", anmarkning: anm,
+});
+
+for (const [namn, kategori, s_, k_, agare, kort, status, beskrivning, hb] of [
+  ["Masskadehändelse", "halsa", 3, 5, "Ingrid Falk", "HSF", "atgardas",
+   "Händelse med fler skadade än regionens ordinarie akutkapacitet klarar.", true],
+  ["Långvarigt elavbrott vid länssjukhuset", "teknisk", 2, 5, "Tomas Nyberg", "RS", "atgardas",
+   "Reservkraft täcker prioriterade avdelningar i 72 timmar.", true],
+  ["Haveri i journalsystemet", "teknisk", 3, 5, "Ingrid Falk", "HSF", "bedomd",
+   "Vårddokumentation och läkemedelsordination slås ut. Reservrutin på papper.", true],
+  ["Utbrott av smittsam sjukdom", "halsa", 4, 4, "Nadia Persson", "HSF", "bedomd",
+   "Belastar vårdplatser och personal samtidigt.", true],
+  ["Antagonistisk påverkan mot vårdinformationssystem", "antagonistisk", 3, 5, "Camilla Wahl", "RK", "atgardas",
+   "Ransomware mot regionens vårdsystem.", true],
+  ["Bortfall av medicinska gaser", "forsorjning", 2, 5, "Tomas Nyberg", "RS", "bedomd",
+   "Syrgasförsörjning till IVA och vårdavdelningar.", true],
+]) ins("risks", {
+  namn, kategori, beskrivning, sannolikhet: s_, konsekvens: k_, agare, unit_id: UR[kort],
+  status, senast_bedomd: "2026-05-28", hojd_beredskap: hb,
+});
+
+const FR = {};
+for (const [kort, namn, prio, mtpd, faktisk, ps, pd, brukare, beskrivning] of [
+  ["HSF", "Akutmottagning länssjukhuset", 1, 0, 2, "faststalld", "2026-04-15", 298400,
+   "Dygnetruntöppen akutmottagning, cirka 62 000 besök per år."],
+  ["HSF", "Intensivvård", 1, 0, 1, "faststalld", "2026-04-15", 14,
+   "14 IVA-platser, varav 8 med respirator."],
+  ["HSF", "Ambulanssjukvård", 1, 0, 1, "faststalld", "2026-02-20", 298400,
+   "17 ambulanser och en akutläkarbil."],
+  ["HSF", "Vårdinformationssystem", 1, 2, 24, "utkast", null, 298400,
+   "Journal, läkemedelsordination och remisshantering."],
+  ["HSF", "Dialysverksamhet", 2, 24, 48, "utgangen", "2023-06-01", 96,
+   "96 patienter i kronisk hemodialys, tre behandlingar per vecka."],
+  ["KTF", "Regional kollektivtrafik", 2, 12, 36, "saknas", null, 298400,
+   "Busstrafik och sjukresor. Transportresurs vid evakuering."],
+  ["FTV", "Akuttandvård", 3, 72, 72, "faststalld", "2025-09-10", 298400,
+   "Akut smärtlindring och infektionsbehandling."],
+]) FR[namn] = ins("critical_functions", {
+  unit_id: UR[kort], namn, beskrivning, prioritet: prio, mtpd_timmar: mtpd,
+  faktisk_timmar: faktisk, plan_status: ps, plan_datum: pd, berorda_brukare: brukare,
+});
+
+for (const [fn, typ, beskrivning, reserv, sarbarhet] of [
+  ["Akutmottagning länssjukhuset", "el", "Belysning, medicinteknik, diagnostik", "Reservkraft 72 h", 3],
+  ["Akutmottagning länssjukhuset", "personal", "Akutläkare och sjuksköterskor", "Inkallelseplan", 4],
+  ["Intensivvård", "el", "Respiratorer och övervakning", "Reservkraft 72 h, UPS 30 min", 3],
+  ["Intensivvård", "leverantor", "Medicinska gaser, syrgas", "Tankbil, leveranstid 6 h", 5],
+  ["Ambulanssjukvård", "drivmedel", "Dieselförsörjning", "Egen tank, 5 dygn", 3],
+  ["Ambulanssjukvård", "it", "Larmöverföring via SOS Alarm", "Rakel som reservväg", 2],
+  ["Vårdinformationssystem", "it", "Regionens datacenter", "Reservrutin på papper, ej övad", 5],
+  ["Vårdinformationssystem", "leverantor", "Extern systemleverantör", "Avtal utan beredskapsklausul", 5],
+  ["Dialysverksamhet", "vatten", "Renat vatten till dialysmaskiner", "Ingen reservlösning", 5],
+  ["Dialysverksamhet", "el", "Dialysmaskiner", "Reservkraft", 3],
+  ["Regional kollektivtrafik", "drivmedel", "Diesel och HVO till bussflottan", "Avtal utan prioritet vid ransonering", 4],
+]) ins("dependencies", { function_id: FR[fn], typ, beskrivning, reservlosning: reserv, sarbarhet });
+
+for (const [kategori, benamning, kapacitet, antal, enhet, placering, kort, status, sk, nk, ansvarig, not] of [
+  ["reservkraft", "Stationärt reservkraftverk, länssjukhuset", "2 x 1 600 kVA", 2, "st", "Länssjukhuset Västmark", "RS", "driftklar", "2026-09-04", "2026-12-04", "Tomas Nyberg", "Provkörs månadsvis med last."],
+  ["reservkraft", "Mobilt reservkraftverk", "150 kVA", 3, "st", "Regionservice depå", "RS", "service", "2026-06-12", "2026-09-12", "Tomas Nyberg", "Ett aggregat på service sedan juni, kontrollintervallet passerat."],
+  ["drivmedel", "Dieseltank, ambulansstation", "18 000 liter", 18000, "liter", "Ambulansstation Västmark", "HSF", "driftklar", "2026-10-02", "2027-01-02", "Tomas Nyberg", "Täcker ambulansdrift i cirka 5 dygn."],
+  ["sjukvard", "Syrgas, flytande", "22 000 liter", 22000, "liter", "Länssjukhuset, gascentral", "RS", "driftklar", "2026-10-10", "2026-11-10", "Tomas Nyberg", "Förbrukning vid normaldrift cirka 1 800 liter per dygn."],
+  ["sjukvard", "Katastrofberedskapslager, förbrukningsmateriel", "500 skadade", 1, "lager", "Länssjukhuset, plan -1", "HSF", "okand", null, null, "Ingrid Falk", "Inventering ej genomförd sedan 2024."],
+  ["samband", "Rakel-terminaler", "Ledning och ambulans", 180, "st", "Fördelade per verksamhet", "RK", "driftklar", "2026-08-19", "2027-02-19", "Camilla Wahl", ""],
+  ["vatten", "Reservvattentank, dialysen", "6 000 liter", 6000, "liter", "Länssjukhuset, plan 3", "HSF", "ur_drift", "2026-05-30", "2026-08-30", "Tomas Nyberg", "Läckage konstaterat i maj. Dialysen saknar därmed reservvatten."],
+  ["fordon", "Sjuktransportbussar", "12 bårplatser vardera", 2, "st", "Kollektivtrafikdepån", "KTF", "driftklar", "2026-07-08", "2027-01-08", "Marie Löfgren", "Kan användas vid masskadehändelse."],
+]) ins("resources", {
+  kategori, benamning, kapacitet, antal, enhet, placering, unit_id: UR[kort],
+  status, sista_kontroll: sk, nasta_kontroll: nk, ansvarig, noteringar: not,
+});
+
+for (const [namn, typ, datum, status, malgrupp, deltagare, scenario, krav, erf] of [
+  ["Regional masskadeövning Sirius", "faltovning", "2026-05-08", "utvarderad", "Särskild sjukvårdsledning, akutmottagning, ambulans", 140,
+   "Bussolycka med 48 skadade, varav 12 prio 1.", "OK-REGION",
+   "Larmvägen till katastrofmedicinsk ledningsläkare tog 34 minuter mot målsatta 15. Reservrutin för journal på papper var inte känd av personalen."],
+  ["Stabsövning smittskydd", "simulering", "2026-09-17", "genomford", "Regional krisledning, smittskyddsenheten", 22,
+   "Utbrott av luftburen smitta med behov av kohortvård.", "HSL-KATASTROF", ""],
+  ["Utbildning i krigsplacering", "utbildning", "2026-02-11", "utvarderad", "HR och verksamhetschefer", 35,
+   "Genomgång av samrådsplikt och säkerhetsprövning.", "TF-KRIGSPL",
+   "Verksamhetscheferna saknade underlag om vilka som har annan plikt."],
+  ["Reservkraftprov länssjukhuset", "larmovning", "2026-11-19", "planerad", "Regionservice, HSF", 0,
+   "Avbrott i ordinarie kraftmatning under 8 timmar.", "", ""],
+]) ins("exercises", { namn, typ, datum, status, malgrupp, deltagare, scenario, forankrad_lagkrav: krav, erfarenheter: erf });
+
+for (const [titel, kalla, ref, ansvarig, kort, prio, status, forfallo, klar, beskrivning] of [
+  ["Åtgärda larmvägen till katastrofmedicinsk ledningsläkare", "ovning", "Regional masskadeövning Sirius", "Oskar Rydell", "HSF", "hog", "pagaende", "2026-11-30", null,
+   "Larmvägen tog 34 minuter mot målsatta 15. Ny larmrutin via TiB ska införas och övas."],
+  ["Öva reservrutin för journal på papper", "ovning", "Regional masskadeövning Sirius", "Petra Lindqvist", "HSF", "hog", "ej_paborjad", "2027-02-28", null,
+   "Personalen kände inte till reservrutinen vid övningen."],
+  ["Reparera reservvattentank till dialysen", "resurs", "Reservvattentank, dialysen", "Tomas Nyberg", "RS", "hog", "pagaende", "2026-11-15", null,
+   "Tanken är ur drift sedan maj. Dialysverksamheten saknar reservvatten och har 96 patienter i kronisk behandling."],
+  ["Förnya registerkontroll för smittskyddsläkaren", "krigsorg", "SASK-CHEF", "Camilla Wahl", "RK", "hog", "pagaende", "2026-11-30", null,
+   "Registerkontrollen är utgången för en befattning i säkerhetsklass 2."],
+  ["Ta fram kontinuitetsplan för regional kollektivtrafik", "kontinuitet", "Regional kollektivtrafik", "Marie Löfgren", "KTF", "normal", "ej_paborjad", "2027-03-31", null,
+   "Planen saknas helt. Trafiken är transportresurs vid evakuering."],
+  ["Förhandla beredskapsklausul med systemleverantören", "rsa", "Haveri i journalsystemet", "Camilla Wahl", "RK", "normal", "ej_paborjad", "2027-06-30", null,
+   "Nuvarande avtal saknar krav på återställningstid vid allvarlig händelse."],
+  ["Inventera katastrofberedskapslagret", "resurs", "Katastrofberedskapslager, förbrukningsmateriel", "Ingrid Falk", "HSF", "normal", "ej_paborjad", "2026-12-31", null,
+   "Ingen inventering sedan 2024. Lagrets status är okänd."],
+]) ins("actions", {
+  titel, beskrivning, kalla, kalla_ref: ref, ansvarig, unit_id: UR[kort],
+  prioritet: prio, status, forfallodatum: forfallo, klar_datum: klar, skapad: "2026-05-20",
+});
+
+seedaStatus(VASTMARK, "region", "Helena Krantz", {
+  "LEH-RSA": { status: "uppfylld", senast: "2026-05-28", evidens: "RSA 2026, dnr RS 2026/244" },
+  "LEH-PLAN": { status: "uppfylld", senast: "2026-06-18", evidens: "Krisledningsplan RF 2026-06-18 § 71" },
+  "LEH-NAMND": { status: "uppfylld", senast: "2023-02-21", evidens: "Reglemente RF 2023-02-21 § 12" },
+  "LEH-SAMV": { status: "uppfylld", senast: "2026-09-03", evidens: "Regionalt samverkansråd, protokoll 2026-09-03" },
+  "LEH-UTB": { status: "uppfylld", senast: "2026-05-08", evidens: "Masskadeövning Sirius, utvärderad 2026-06-04" },
+  "LEH-RAPP": { status: "uppfylld", senast: "2026-02-26", evidens: "Årsrapport 2025, dnr RS 2026/58" },
+  "LEH-KRIGSORG": { status: "uppfylld", senast: "2026-03-12", evidens: "Krigsorganisation fastställd RS 2026-03-12 § 31" },
+  "TF-KRIGSPL": { status: "pagaende", senast: "2026-03-12", ansvarig: "Camilla Wahl",
+    evidens: "Tre befattningar föreslagna, samråd pågår", not: "Samråd med Försvarsmakten begärt 2026-09-30 för en person." },
+  "SASK-ANALYS": { status: "uppfylld", senast: "2025-11-04", ansvarig: "Camilla Wahl", evidens: "Säkerhetsskyddsanalys 2025, dnr RS 2025/501" },
+  "SASK-CHEF": { status: "brist", senast: "2026-01-15", ansvarig: "Camilla Wahl", evidens: "Registerkontroll utgången för en befattning i säkerhetsklass 2" },
+  "NIS2-ANMALAN": { status: "uppfylld", senast: "2026-03-04", ansvarig: "Camilla Wahl", evidens: "Anmälan 2026-03-04" },
+  "NIS2-RISK": { status: "pagaende", ansvarig: "Camilla Wahl", evidens: "Åtgärdsplan beslutad, införande pågår" },
+  "NIS2-LEDNING": { status: "uppfylld", senast: "2026-04-22", ansvarig: "Camilla Wahl", evidens: "Utbildning för regionstyrelsen 2026-04-22" },
+  "NIS2-INCIDENT": { status: "pagaende", ansvarig: "Camilla Wahl", evidens: "Rutin framtagen, ej övad" },
+  "OK-REGION": { status: "uppfylld", senast: "2026-02-26", evidens: "Redovisning till MSB 2026-02-26" },
+  "HSL-KATASTROF": { status: "pagaende", senast: "2026-04-15", ansvarig: "Ingrid Falk",
+    evidens: "Katastrofmedicinsk beredskapsplan 2026-04-15",
+    not: "Planen bygger på SOSFS 2013:22, som upphörde vid utgången av 2025. Ska ses över när föreskriftsläget klarnat." },
+  "HSL-UTLAND": { status: "ej_paborjad", ansvarig: "Ingrid Falk",
+    evidens: "Regionen saknar uppdrag", not: "Region Västmark har inte uppdrag om insatser utomlands." },
+  SMITTSKYDD: { status: "uppfylld", senast: "2026-01-08", ansvarig: "Nadia Persson", evidens: "Smittskyddsläkare förordnad, smittskyddsenhet med 6 tjänster" },
+  "LKRB-INFOR": { status: "pagaende", ansvarig: "Helena Krantz", evidens: "Gapanalys mot prop. 2026/27:5 påbörjad" },
+});
+
+/* ----------------------------------------------- federerad inloggning */
+// Nordmark loggar in mot en katalogtjänst, de övriga med lokala lösenord. Det
+// speglar verkligheten under ett införande: federeringen kommer en kommun i
+// taget. Utfärdaren här är scripts/test-idp.mjs, som måste köras separat.
+ins("org_idp", {
+  org_id: NORDMARK,
+  issuer: "http://localhost:4011",
+  client_id: "beredskapsnavet-test",
+  client_secret: "test-hemlighet",
+  knapptext: "Logga in med Nordmarks kommunkonto",
+  // Flerfaktor krävs och kontrolleras mot amr i id-token, inte antas.
+  krav_amr: "mfa",
+  // Vilka adresser utfärdaren får intyga. Utan den här gränsen kan varje
+  // konfigurerad utfärdare intyga varje adress i installationen, inklusive
+  // leverantörens egen. Tom betyder att ingen federerad inloggning tillåts.
+  epost_domaner: "nordmark.se",
+  // Behörighet ges genom inbjudan, inte av att någon har ett konto i
+  // katalogtjänsten. En kommunanställd ska inte automatiskt komma åt
+  // krisberedskapssystemet.
+  auto_medlemskap: 0,
+  auto_roll: "kommunledning",
+  aktiv: true,
+});
+
+/* ------------------------------------------------- nycklar mot HR-systemet */
+// extern_id är anställningsnumret i kommunens personalsystem och det som en
+// import matchar på. Demodatan får syntetiska nummer per organisation, så att
+// importfunktionen går att prova mot en befintlig personallista.
+for (const o of db.prepare("SELECT id, kortnamn FROM organisations").all()) {
+  const prefix = o.kortnamn.slice(0, 2).toUpperCase();
+  let nummer = 1000;
+  for (const p of db.prepare("SELECT id FROM people WHERE org_id = ? ORDER BY id").all(o.id)) {
+    db.prepare("UPDATE people SET extern_id = ? WHERE id = ?")
+      .run(`${prefix}-${++nummer}`, p.id);
+  }
+}
+
+/* ------------------------------------------- personuppgifter och gallring */
+// Gallringsfristen är ett arkivrättsligt beslut och inte ett förvalt värde, så
+// bara Ängsholm har beslutat någon. De övriga visas som obeslutade, vilket är
+// hur det faktiskt ser ut hos en kommun som nyss infört systemet.
+for (const [org, kategori, frist, av, datum, not] of [
+  [ANGSHOLM, "krigsplacering", 24, "Arkivmyndigheten, KS 2025/88", "2025-04-16",
+   "Två år efter avslutad anställning, enligt dokumenthanteringsplanen."],
+  [ANGSHOLM, "kontaktuppgifter", 12, "Arkivmyndigheten, KS 2025/88", "2025-04-16", ""],
+  [ANGSHOLM, "anvandarkonton", 36, "Arkivmyndigheten, KS 2025/88", "2025-04-16",
+   "Loggen bevaras längre än kontot, av hänsyn till säkerhetsskyddsanalysen."],
+  // Säkerhetsprövning och övningsdeltagande är medvetet obeslutade: det är de
+  // två som brukar fastna, eftersom de rör sig mellan gallring och bevarande.
+  [VASTMARK, "krigsplacering", 24, "Regionarkivet, RS 2026/112", "2026-03-19", ""],
+]) {
+  ORG = org;
+  ins("gallringsregler", {
+    kategori, frist_manader: frist, beslutad_av: av,
+    beslutsdatum: datum, anmarkning: not,
+  });
+}
+
+// Avslutad personal, för att gallringsvyn ska ha något att visa. Personerna
+// väljs ur Ängsholm i stället för att pekas ut med namn, så att demodatan
+// följer med om personallistan ändras. Tre fall visas:
+//   1. mogen för gallring  2. fristen har inte löpt ut  3. placering kvar
+const utanPlacering = db.prepare(`
+  SELECT pe.id FROM people pe
+  WHERE pe.org_id = ? AND NOT EXISTS (
+    SELECT 1 FROM placements pl WHERE pl.person_id = pe.id AND pl.status <> 'avslutad')
+  ORDER BY pe.id LIMIT 2
+`).all(ANGSHOLM);
+
+const medPlacering = db.prepare(`
+  SELECT pe.id FROM people pe
+  WHERE pe.org_id = ? AND EXISTS (
+    SELECT 1 FROM placements pl WHERE pl.person_id = pe.id AND pl.status <> 'avslutad')
+  ORDER BY pe.id DESC LIMIT 1
+`).get(ANGSHOLM);
+
+const satUpphorde = (id, d) =>
+  db.prepare("UPDATE people SET anstallning_upphorde = ? WHERE id = ?").run(d, id);
+
+// Fristen är 24 månader, så 2023 är moget och 2026 är det inte.
+if (utanPlacering[0]) satUpphorde(utanPlacering[0].id, "2023-02-28");
+if (utanPlacering[1]) satUpphorde(utanPlacering[1].id, "2026-08-31");
+if (medPlacering) satUpphorde(medPlacering.id, "2023-06-30");
+
+// Tillsynsmyndigheten följer av länet, och för en region dessutom av att
+// regionen är vårdgivare: enligt cybersäkerhetsförordningen 7 § är IVO
+// tillsynsmyndighet för vårdgivare, medan länsstyrelsen svarar för offentlig
+// förvaltning. 16 § säger att myndigheter som delar verksamhetsutövare ska
+// komma överens om hur tillsynen genomförs.
+for (const o of db.prepare("SELECT id, typ, lan FROM organisations").all()) {
+  const lst = TILLSYN_PER_LAN[o.lan] ?? "den länsstyrelse som anges i förordningen";
+  const tillsyn =
+    o.typ === "region"
+      ? `${lst} (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)`
+      : lst;
+  db.prepare("UPDATE organisations SET tillsyn_cyber = ? WHERE id = ?").run(tillsyn, o.id);
 }
 
 /* ------------------------------------------------------------- användare */
@@ -1456,19 +2002,32 @@ const userRows = [
    [[NORDMARK, "beredskapssamordnare", null]]],
   ["Johan Stenmark", "johan.stenmark@vreta.se", "vreta2026",
    [[VRETA, "beredskapssamordnare", null]]],
+  // Region. Samma roller, men kravlistan och modulinnehållet skiljer sig,
+  // eftersom katalogen typar kraven på huvudmannatyp.
+  ["Helena Krantz", "helena.krantz@regionvastmark.se", "vastmark2026",
+   [[VASTMARK, "beredskapssamordnare", "RK"]]],
+  ["Camilla Wahl", "camilla.wahl@regionvastmark.se", "sakerhet2026",
+   [[VASTMARK, "sakerhetsskyddschef", "RK"]]],
+  ["Ingrid Falk", "ingrid.falk@regionvastmark.se", "sjukvard2026",
+   [[VASTMARK, "forvaltningschef", "HSF"]]],
   // Driftansvarig hos leverantören, med åtkomst till flera kommuner men olika
   // roll i var och en. Visar att behörigheten följer medlemskapet.
+  // Leverantörsflaggan, sista fältet, ger åtkomst till det nationella registret
+  // och rätten att ansluta nya organisationer. Den följer kontot, inte rollen:
+  // Jens är administratör i Ängsholm men ska inte kunna lägga upp andra
+  // kommuner, medan Elsa ska det.
   ["Elsa Wikner", "elsa.wikner@beredskapsnavet.se", "leverantor2026",
-   [[ANGSHOLM, "kommunledning", null], [NORDMARK, "administrator", null], [VRETA, "administrator", null]]],
+   [[ANGSHOLM, "kommunledning", null], [NORDMARK, "administrator", null],
+    [VRETA, "administrator", null], [VASTMARK, "administrator", null]], true],
 ];
 
-const ENHETER_PER_ORG = { [ANGSHOLM]: U, [NORDMARK]: UN, [VRETA]: UV };
+const ENHETER_PER_ORG = { [ANGSHOLM]: U, [NORDMARK]: UN, [VRETA]: UV, [VASTMARK]: UR };
 
-for (const [namn, epost, losenord, medlemskap] of userRows) {
+for (const [namn, epost, losenord, medlemskap, leverantor] of userRows) {
   const { salt, hash } = hasha(losenord);
   const userId = ins("users", {
     namn, epost, losenord_hash: hash, losenord_salt: salt,
-    aktiv: true, senaste_inloggning: null, skapad: "2026-01-15",
+    aktiv: true, leverantor: !!leverantor, senaste_inloggning: null, skapad: "2026-01-15",
   });
   for (const [org, roll, kort] of medlemskap) {
     ins("user_orgs", {
@@ -1478,11 +2037,41 @@ for (const [namn, epost, losenord, medlemskap] of userRows) {
   }
 }
 
+// Räknas ur databasen, inte ur de hårdkodade listorna, så att summeringen
+// stämmer även när en organisation läggs till.
+const antal = (t) => db.prepare(`SELECT COUNT(*) AS v FROM ${t}`).get().v;
+const perTyp = db
+  .prepare("SELECT typ, COUNT(*) AS v FROM organisations GROUP BY typ ORDER BY typ")
+  .all()
+  .map((r) => `${r.v} ${r.typ}${r.v === 1 ? "" : r.typ === "kommun" ? "er" : "er"}`)
+  .join(" och ");
+
 console.log(
-  `Seedat: ${unitRows.length} verksamheter, ${positionRows.length} befattningar, ` +
-  `${peopleRows.length} personer, ${placementRows.length} placeringar, ${riskRows.length} risker, ` +
-  `${fnRows.length} kritiska funktioner, ${depRows.length} beroenden, ${resourceRows.length} resurser, ` +
-  `${exerciseRows.length} övningar, ${actionRows.length} åtgärder, ${reqRows.length} lagkrav, ` +
-  `${userRows.length} användare i ${3} organisationer.`
+  `Seedat: ${antal("units")} verksamheter, ${antal("positions")} befattningar, ` +
+  `${antal("people")} personer, ${antal("placements")} placeringar, ${antal("risks")} risker, ` +
+  `${antal("critical_functions")} kritiska funktioner, ${antal("dependencies")} beroenden, ` +
+  `${antal("resources")} resurser, ${antal("exercises")} övningar, ${antal("actions")} åtgärder, ` +
+  `${antal("users")} användare i ${perTyp}.\n` +
+  `Register: ${antal("org_registry")} kommuner och regioner i landet.\n` +
+  `Kravkatalog: ${antal("requirement_catalog")} krav delade av alla, ` +
+  `${antal("requirement_status")} statusrader. ` +
+  (() => {
+    const v = db
+      .prepare("SELECT COUNT(*) AS v FROM requirement_catalog WHERE kontrollerad = ''")
+      .get().v;
+    return v === 1
+      ? "1 krav är inte avstämt mot författningstext."
+      : `${v} krav är inte avstämda mot författningstext.`;
+  })()
+);
+
+// Demokontonas lösenord står i den här filen och därmed i
+// versionshanteringen. Rutan på inloggningssidan visas bara när demodata
+// finns, men kontona går att logga in med vare sig rutan visas eller inte, så
+// en demo får inte nås av någon som inte ska komma in.
+console.log(
+  "\nDemodata. Kontonas lösenord står i scripts/seed.mjs och är offentliga.\n" +
+  "En installation i drift skapas i stället med\n\n" +
+  "  npm run installera -- --organisation <kod> --namn \"<namn>\" --epost <adress>\n",
 );
 db.close();

@@ -6,9 +6,9 @@ import { idag } from "@/lib/format";
 
 export type Organisation = {
   id: number; kortnamn: string; namn: string; typ: string; lan: string;
-  invanare: number; mandatperiod: string; beredskapsniva: string;
+  invanare: number | null; mandatperiod: string; beredskapsniva: string;
   samordnare: string; samordnare_epost: string; tib_telefon: string;
-  uppdaterad: string; ansluten: string; aktiv: number;
+  uppdaterad: string; ansluten: string; tillsyn_cyber: string; aktiv: number;
 };
 
 export type Unit = {
@@ -76,11 +76,24 @@ export type Atgard = {
   forfallodatum: string | null; klar_datum: string | null; skapad: string;
 };
 
+/**
+ * Ett krav som det ser ut för en organisation: den delade katalogtexten plus
+ * organisationens egen status. `id` är statusradens id, eftersom det är den
+ * som skrivs; katalograden ändras bara centralt.
+ */
 export type Krav = {
-  id: number; kod: string; rubrik: string; lagrum: string; beskrivning: string;
+  id: number; krav_id: number;
+  kod: string; rubrik: string; lagrum: string; beskrivning: string;
+  /** Katalogtextens platshållare fyllda med organisationens uppgifter. */
+  kontext: string;
   intervall: string; status: string; senast_genomfort: string | null;
   nasta_forfallo: string | null; ansvarig: string; evidens: string; modul: string;
   kalla_url: string; giltighet: string; giltighet_not: string;
+  galler_for: string;
+  /** Tomt när kravet inte är avstämt mot författningstext. */
+  kontrollerad: string; kontrollerad_av: string;
+  /** Organisationens egen anteckning. Delas aldrig med andra organisationer. */
+  lokal_not: string;
 };
 
 export type Konflikt = {
@@ -98,6 +111,23 @@ export const hamtaOrganisation = (orgId: number) =>
 
 export const hamtaOrganisationer = () =>
   all<Organisation>("SELECT * FROM organisations WHERE aktiv = 1 ORDER BY namn");
+
+/**
+ * Om databasen innehåller demodata.
+ *
+ * En organisation kan bara läggas upp ur det nationella registret — se
+ * laggUppOrganisation — så en ansluten kommun eller region har alltid en rad
+ * där. Demodatans organisationer är påhittade och har registry_id null, och
+ * det är den skillnaden som skiljer en demo från en installation.
+ *
+ * Signalen ligger i datan och inte i en flagga, därför att en flagga är
+ * något man glömmer vid driftsättningen. Samma signal används av spärren mot
+ * att seedningen raderar en skarp databas.
+ */
+export const demodataFinns = () =>
+  (one<{ v: number }>(
+    "SELECT COUNT(*) AS v FROM organisations WHERE registry_id IS NULL",
+  )?.v ?? 0) > 0;
 
 export const hamtaUnits = (orgId: number) =>
   all<Unit>(
@@ -256,6 +286,18 @@ export function hamtaKonflikter(orgId: number): Konflikt[] {
 
 /* ---------------------------------------------------------------------- RSA */
 
+/**
+ * En lista som redigeras på plats får inte sorteras på det fält som redigeras.
+ *
+ * Gjorde den det hoppade raden undan i samma ögonblick som den ändrades, och
+ * den som arbetade sig nedåt i listan redigerade sedan ett annat objekt än det
+ * hen just såg — för en tangentbordsanvändare, vars fokus står kvar på samma
+ * plats i dokumentet, blev nästa tryck en ändring på fel rad. I ett system som
+ * används som tillsynsunderlag är det inte ett skönhetsfel.
+ *
+ * Prioriteringen finns kvar där den hör hemma: översiktens lista över vad som
+ * behöver göras härnäst, som inte redigeras i.
+ */
 export const hamtaRisker = (orgId: number) =>
   all<Risk>(`
     SELECT r.*, u.kortnamn,
@@ -263,7 +305,7 @@ export const hamtaRisker = (orgId: number) =>
         WHERE a.org_id = r.org_id AND a.kalla = 'rsa' AND a.kalla_ref = r.namn) AS atgarder
     FROM risks r LEFT JOIN units u ON u.id = r.unit_id
     WHERE r.org_id = ?
-    ORDER BY r.sannolikhet * r.konsekvens DESC, r.namn
+    ORDER BY r.namn
   `, orgId);
 
 /* --------------------------------------------------------- kontinuitet */
@@ -290,8 +332,7 @@ export const hamtaResurser = (orgId: number) =>
   all<Resurs>(`
     SELECT r.*, u.kortnamn FROM resources r LEFT JOIN units u ON u.id = r.unit_id
     WHERE r.org_id = ?
-    ORDER BY CASE r.status WHEN 'ur_drift' THEN 1 WHEN 'okand' THEN 2
-      WHEN 'service' THEN 3 ELSE 4 END, r.kategori, r.benamning
+    ORDER BY r.kategori, r.benamning
   `, orgId);
 
 /* ------------------------------------------------------------------ övningar */
@@ -310,21 +351,65 @@ export const hamtaAtgarder = (orgId: number) =>
   all<Atgard>(`
     SELECT a.*, u.kortnamn FROM actions a LEFT JOIN units u ON u.id = a.unit_id
     WHERE a.org_id = ?
-    ORDER BY
-      CASE a.status WHEN 'klar' THEN 2 WHEN 'avbruten' THEN 3 ELSE 1 END,
-      CASE a.prioritet WHEN 'hog' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
-      a.forfallodatum IS NULL, a.forfallodatum
+    ORDER BY a.forfallodatum IS NULL, a.forfallodatum, a.id
   `, orgId);
 
 /* ------------------------------------------------------------------- lagkrav */
 
-export const hamtaKrav = (orgId: number) =>
-  all<Krav>(`
-    SELECT * FROM requirements
-    WHERE org_id = ?
-    ORDER BY CASE status WHEN 'brist' THEN 1 WHEN 'ej_paborjad' THEN 2
-      WHEN 'pagaende' THEN 3 ELSE 4 END, nasta_forfallo IS NULL, nasta_forfallo
+/**
+ * Fyller katalogens kontextmall med organisationens egna uppgifter.
+ *
+ * Katalogtexten är delad, men några krav betyder olika saker beroende på hur
+ * stor organisationen är och i vilket län den ligger: storleken avgör om den
+ * är väsentlig eller viktig verksamhetsutövare, länet avgör tillsynsmyndighet.
+ * Sådan text får därför inte skrivas in i den delade beskrivningen, utan fylls
+ * här vid läsning.
+ */
+function fyllKontext(mall: string, org: Organisation, anstallda: number): string {
+  if (!mall) return "";
+  // Gränsen för medelstor går vid 250 anställda enligt EU:s definition, som
+  // cybersäkerhetslagen bygger på.
+  const vasentlig = anstallda > 250;
+  const siffra = (n: number) => n.toLocaleString("sv-SE");
+  return mall
+    .replaceAll("{namn}", org.namn)
+    .replaceAll("{typ}", org.typ)
+    .replaceAll("{lan}", org.lan)
+    .replaceAll("{invanare}", org.invanare === null ? "okänt antal" : siffra(org.invanare))
+    .replaceAll("{anstallda}", siffra(anstallda))
+    .replaceAll("{storlek}", vasentlig ? "väsentlig" : "viktig")
+    .replaceAll("{storleksgrund}", vasentlig ? "större än medelstor" : "medelstor eller mindre")
+    .replaceAll("{tillsyn}", org.tillsyn_cyber || "den myndighet som anges i förordningen");
+}
+
+/**
+ * Organisationens kravlista: den delade katalogen sammanfogad med
+ * organisationens status. Bara de krav som gäller organisationens
+ * huvudmannatyp får en statusrad, så filtreringen sker redan vid upplägget.
+ */
+export function hamtaKrav(orgId: number): Krav[] {
+  const org = hamtaOrganisation(orgId);
+  const anstallda =
+    one<{ v: number }>("SELECT COALESCE(SUM(anstallda), 0) AS v FROM units WHERE org_id = ?", orgId)
+      ?.v ?? 0;
+
+  const rader = all<Krav & { kontextmall: string }>(`
+    SELECT s.id, s.krav_id, s.status, s.senast_genomfort, s.nasta_forfallo,
+           s.ansvarig, s.evidens, s.lokal_not,
+           k.kod, k.rubrik, k.lagrum, k.beskrivning, k.kontextmall, k.intervall,
+           k.modul, k.kalla_url, k.giltighet, k.giltighet_not, k.galler_for,
+           k.kontrollerad, k.kontrollerad_av
+    FROM requirement_status s
+    JOIN requirement_catalog k ON k.id = s.krav_id
+    WHERE s.org_id = ?
+    ORDER BY k.kod
   `, orgId);
+
+  return rader.map(({ kontextmall, ...rad }) => ({
+    ...rad,
+    kontext: fyllKontext(kontextmall, org, anstallda),
+  }));
+}
 
 export const hamtaLogg = (orgId: number, gransvarde = 12) =>
   all<{ id: number; tidpunkt: string; anvandare: string; handelse: string; objekt: string }>(
@@ -374,13 +459,13 @@ export function hamtaOversikt(orgId: number): Oversikt {
     foreslagna: num("SELECT COUNT(*) AS v FROM placements WHERE org_id = ? AND status = 'foreslagen'"),
     konflikter: konflikter.length,
     allvarligaKonflikter: konflikter.filter((k) => k.allvarlig).length,
-    kravTotalt: num("SELECT COUNT(*) AS v FROM requirements WHERE org_id = ?"),
+    kravTotalt: num("SELECT COUNT(*) AS v FROM requirement_status WHERE org_id = ?"),
     kravBrist: num(
-      "SELECT COUNT(*) AS v FROM requirements WHERE org_id = ? AND status IN ('brist','ej_paborjad')",
+      "SELECT COUNT(*) AS v FROM requirement_status WHERE org_id = ? AND status IN ('brist','ej_paborjad')",
     ),
-    kravUppfyllda: num("SELECT COUNT(*) AS v FROM requirements WHERE org_id = ? AND status = 'uppfylld'"),
+    kravUppfyllda: num("SELECT COUNT(*) AS v FROM requirement_status WHERE org_id = ? AND status = 'uppfylld'"),
     kravForfaller: num(
-      `SELECT COUNT(*) AS v FROM requirements
+      `SELECT COUNT(*) AS v FROM requirement_status
        WHERE org_id = ? AND nasta_forfallo IS NOT NULL
          AND nasta_forfallo <= date(?, '+90 days') AND status <> 'uppfylld'`,
       d,
@@ -420,19 +505,166 @@ export function hamtaOversikt(orgId: number): Oversikt {
   };
 }
 
+/* ------------------------------------------- personuppgifter och gallring */
+
+export type Gallringsregel = {
+  kategori: string;
+  frist_manader: number | null;
+  beslutad_av: string;
+  beslutsdatum: string | null;
+  anmarkning: string;
+};
+
+export const hamtaGallringsregler = (orgId: number) =>
+  all<Gallringsregel>(
+    "SELECT kategori, frist_manader, beslutad_av, beslutsdatum, anmarkning FROM gallringsregler WHERE org_id = ?",
+    orgId,
+  );
+
+export type Gallringsbar = {
+  id: number; namn: string; unit: string; befattning_fred: string;
+  anstallning_upphorde: string; sakerhetsklass: string; registerkontroll: string;
+  /** Placeringar som inte är avslutade. En sådan ska avslutas före gallring. */
+  oppna_placeringar: number;
+};
+
+/**
+ * Personer vars anställning upphört, med underlag för gallringsbedömningen.
+ *
+ * Själva fristen tillämpas inte här utan i gränssnittet, eftersom den är ett
+ * beslut per kommun och kan saknas. En lista som tyst utelämnade personer för
+ * att fristen inte är satt vore värre än en som visar dem som obedömda.
+ */
+export const hamtaGallringsbara = (orgId: number) =>
+  all<Gallringsbar>(`
+    SELECT pe.id, pe.namn, pe.befattning_fred, pe.anstallning_upphorde,
+           pe.sakerhetsklass, pe.registerkontroll, u.namn AS unit,
+      (SELECT COUNT(*) FROM placements pl
+        WHERE pl.person_id = pe.id AND pl.status <> 'avslutad') AS oppna_placeringar
+    FROM people pe JOIN units u ON u.id = pe.unit_id
+    WHERE pe.org_id = ? AND pe.anstallning_upphorde IS NOT NULL
+    ORDER BY pe.anstallning_upphorde
+  `, orgId);
+
+/* ------------------------------------------------------- kravkatalogen */
+
+export type Katalograd = {
+  id: number; kod: string; rubrik: string; lagrum: string; beskrivning: string;
+  kontextmall: string; intervall: string; modul: string; kalla_url: string;
+  giltighet: string; giltighet_not: string; galler_for: string;
+  standard_forfallo: string | null;
+  kontrollerad: string; kontrollerad_av: string; katalogversion: number;
+  /** Antal organisationer som har kravet i sin lista. */
+  berorda: number;
+  /** Hur många av dem som redovisat arbete på kravet. */
+  paborjade: number;
+  revisioner: number;
+};
+
+/**
+ * Hela den delade katalogen, med hur många kunder varje rad slår igenom hos.
+ *
+ * Siffran berorda är det som gör redaktionsarbetet begripligt: den som rättar
+ * ett lagrum ska se att ändringen når 287 kommuner, inte tro att den gäller en.
+ */
+export const hamtaKatalog = () =>
+  all<Katalograd>(`
+    SELECT k.*,
+      (SELECT COUNT(*) FROM requirement_status s WHERE s.krav_id = k.id) AS berorda,
+      (SELECT COUNT(*) FROM requirement_status s
+        WHERE s.krav_id = k.id AND s.status <> 'ej_paborjad') AS paborjade,
+      (SELECT COUNT(*) FROM catalog_revisions v WHERE v.krav_id = k.id) AS revisioner
+    FROM requirement_catalog k
+    ORDER BY k.kontrollerad = '' DESC, k.galler_for, k.kod
+  `);
+
+export type Revision = {
+  id: number; krav_id: number; kod: string; rubrik: string; tidpunkt: string;
+  anvandare: string; falt: string; fran: string; till: string;
+  motivering: string; berorda: number;
+};
+
+export const hamtaRevisioner = (gransvarde = 40) =>
+  all<Revision>(`
+    SELECT v.*, k.kod, k.rubrik
+    FROM catalog_revisions v JOIN requirement_catalog k ON k.id = v.krav_id
+    ORDER BY v.id DESC LIMIT ?
+  `, gransvarde);
+
+/* --------------------------------------------------- nationellt register */
+
+export type Registerrad = {
+  id: number; kod: string; namn: string; kortnamn: string; typ: string;
+  lan: string; tillsyn_cyber: string;
+  /** Satt när organisationen är upplagd som kund. */
+  org_id: number | null;
+  ansluten: string | null;
+  aktiv: number | null;
+};
+
+/**
+ * Samtliga kommuner och regioner i landet, med uppgift om vilka som är kunder.
+ *
+ * Till skillnad från allt annat i den här filen filtreras den INTE på
+ * organisation, eftersom den är referensdata och inte kunddata. Att den
+ * dessutom avslöjar vilka andra kommuner som är kunder gör att läsningen måste
+ * spärras på leverantörsnivå; se kravLeverantor() i session.ts.
+ */
+export const hamtaRegister = () =>
+  all<Registerrad>(`
+    SELECT r.id, r.kod, r.namn, r.kortnamn, r.typ, r.lan, r.tillsyn_cyber,
+           o.id AS org_id, o.ansluten, o.aktiv
+    FROM org_registry r
+    LEFT JOIN organisations o ON o.registry_id = r.id
+    ORDER BY r.typ <> 'region', r.namn
+  `);
+
+/** Hur många krav en organisation av en viss typ får ur katalogen. */
+export const hamtaKravantalPerTyp = () =>
+  all<{ typ: string; antal: number }>(`
+    SELECT t.typ, COUNT(*) AS antal
+    FROM (SELECT 'kommun' AS typ UNION SELECT 'region' UNION SELECT 'kommun_region') t
+    JOIN requirement_catalog k
+      ON k.galler_for = 'bada'
+      OR k.galler_for = t.typ
+      OR (t.typ = 'kommun_region' AND k.galler_for IN ('kommun', 'region'))
+    GROUP BY t.typ
+  `);
+
 /* ---------------------------------------------------------------- användare */
 
 export type AnvandarRad = {
   id: number; namn: string; epost: string; roll: string; unit_id: number | null;
   kortnamn: string | null; aktiv: number; senaste_inloggning: string | null;
   skapad: string; aktiva_sessioner: number; antal_organisationer: number;
+  leverantor: number; utan_losenord: number;
 };
+
+export type Inbjudan = {
+  id: number; epost: string; roll: string; unit_id: number | null;
+  kortnamn: string | null; skapad: string; gar_ut: string;
+  inbjuden_av: string; accepterad: string | null; har_konto: number;
+};
+
+/** Obesvarade inbjudningar till organisationen. */
+export const hamtaInbjudningar = (orgId: number) =>
+  all<Inbjudan>(`
+    SELECT i.id, i.epost, i.roll, i.unit_id, i.skapad, i.gar_ut, i.inbjuden_av,
+           i.accepterad, u.kortnamn,
+           (SELECT COUNT(*) FROM users x WHERE x.epost = i.epost) AS har_konto
+    FROM invitations i
+    LEFT JOIN units u ON u.id = i.unit_id
+    WHERE i.org_id = ? AND i.accepterad IS NULL
+    ORDER BY i.skapad DESC
+  `, orgId);
 
 /** Användare med behörighet till organisationen. Andra kommuners konton syns inte. */
 export const hamtaAnvandarlista = (orgId: number) =>
   all<AnvandarRad>(`
     SELECT u.id, u.namn, u.epost, uo.roll, uo.unit_id, u.aktiv, u.senaste_inloggning,
-           u.skapad, un.kortnamn,
+           u.skapad, un.kortnamn, u.leverantor,
+      -- Tomt lösenordsfält betyder att kontot loggar in mot katalogtjänsten.
+      CASE WHEN u.losenord_hash = '' THEN 1 ELSE 0 END AS utan_losenord,
       (SELECT COUNT(*) FROM sessions s
         WHERE s.user_id = u.id AND s.org_id = uo.org_id AND s.gar_ut > ?) AS aktiva_sessioner,
       (SELECT COUNT(*) FROM user_orgs x WHERE x.user_id = u.id) AS antal_organisationer

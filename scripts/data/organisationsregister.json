@@ -1,0 +1,2494 @@
+{
+ "beskrivning": "Samtliga kommuner och regioner i Sverige, med kommunkod, län och tillsynsmyndighet enligt cybersäkerhetsförordningen (2025:1507). Gotland förekommer en gång, som typen kommun_region, eftersom kommunen är en juridisk person som fullgör både kommunens och regionens uppgifter. Antalet juridiska personer är därför 310, inte 290 + 21.",
+ "kalla_kommuner": "SCB:s läns- och kommunkoder, via npm-paketet kommunkoder 1.1.1",
+ "kalla_tillsyn": "Cybersäkerhetsförordning (2025:1507) 7 och 10-15 §§",
+ "sammanstalld": "2026-10-24",
+ "antal": {
+  "kommun": 289,
+  "region": 20,
+  "kommun_region": 1,
+  "totalt": 310
+ },
+ "organisationer": [
+  {
+   "kod": "01",
+   "namn": "Region Stockholm",
+   "kortnamn": "region-stockholm",
+   "typ": "region",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "03",
+   "namn": "Region Uppsala",
+   "kortnamn": "region-uppsala",
+   "typ": "region",
+   "lan": "Uppsala län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "04",
+   "namn": "Region Sörmland",
+   "kortnamn": "region-sormland",
+   "typ": "region",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "05",
+   "namn": "Region Östergötland",
+   "kortnamn": "region-ostergotland",
+   "typ": "region",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "06",
+   "namn": "Region Jönköpings län",
+   "kortnamn": "region-jonkopings-lan",
+   "typ": "region",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "07",
+   "namn": "Region Kronoberg",
+   "kortnamn": "region-kronoberg",
+   "typ": "region",
+   "lan": "Kronobergs län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "08",
+   "namn": "Region Kalmar län",
+   "kortnamn": "region-kalmar-lan",
+   "typ": "region",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "10",
+   "namn": "Region Blekinge",
+   "kortnamn": "region-blekinge",
+   "typ": "region",
+   "lan": "Blekinge län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "12",
+   "namn": "Region Skåne",
+   "kortnamn": "region-skane",
+   "typ": "region",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "13",
+   "namn": "Region Halland",
+   "kortnamn": "region-halland",
+   "typ": "region",
+   "lan": "Hallands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "14",
+   "namn": "Västra Götalandsregionen",
+   "kortnamn": "vastra-gotalandsregionen",
+   "typ": "region",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "17",
+   "namn": "Region Värmland",
+   "kortnamn": "region-varmland",
+   "typ": "region",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "18",
+   "namn": "Region Örebro län",
+   "kortnamn": "region-orebro-lan",
+   "typ": "region",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "19",
+   "namn": "Region Västmanland",
+   "kortnamn": "region-vastmanland",
+   "typ": "region",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "20",
+   "namn": "Region Dalarna",
+   "kortnamn": "region-dalarna",
+   "typ": "region",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "21",
+   "namn": "Region Gävleborg",
+   "kortnamn": "region-gavleborg",
+   "typ": "region",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "22",
+   "namn": "Region Västernorrland",
+   "kortnamn": "region-vasternorrland",
+   "typ": "region",
+   "lan": "Västernorrlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "23",
+   "namn": "Region Jämtland Härjedalen",
+   "kortnamn": "region-jamtland-harjedalen",
+   "typ": "region",
+   "lan": "Jämtlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "24",
+   "namn": "Region Västerbotten",
+   "kortnamn": "region-vasterbotten",
+   "typ": "region",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "25",
+   "namn": "Region Norrbotten",
+   "kortnamn": "region-norrbotten",
+   "typ": "region",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "0114",
+   "namn": "Upplands Väsby",
+   "kortnamn": "upplands-vasby",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0115",
+   "namn": "Vallentuna",
+   "kortnamn": "vallentuna",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0117",
+   "namn": "Österåker",
+   "kortnamn": "osteraker",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0120",
+   "namn": "Värmdö",
+   "kortnamn": "varmdo",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0123",
+   "namn": "Järfälla",
+   "kortnamn": "jarfalla",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0125",
+   "namn": "Ekerö",
+   "kortnamn": "ekero",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0126",
+   "namn": "Huddinge",
+   "kortnamn": "huddinge",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0127",
+   "namn": "Botkyrka",
+   "kortnamn": "botkyrka",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0128",
+   "namn": "Salem",
+   "kortnamn": "salem",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0136",
+   "namn": "Haninge",
+   "kortnamn": "haninge",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0138",
+   "namn": "Tyresö",
+   "kortnamn": "tyreso",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0139",
+   "namn": "Upplands-Bro",
+   "kortnamn": "upplands-bro",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0140",
+   "namn": "Nykvarn",
+   "kortnamn": "nykvarn",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0160",
+   "namn": "Täby",
+   "kortnamn": "taby",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0162",
+   "namn": "Danderyd",
+   "kortnamn": "danderyd",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0163",
+   "namn": "Sollentuna",
+   "kortnamn": "sollentuna",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0180",
+   "namn": "Stockholm",
+   "kortnamn": "stockholm",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0181",
+   "namn": "Södertälje",
+   "kortnamn": "sodertalje",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0182",
+   "namn": "Nacka",
+   "kortnamn": "nacka",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0183",
+   "namn": "Sundbyberg",
+   "kortnamn": "sundbyberg",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0184",
+   "namn": "Solna",
+   "kortnamn": "solna",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0186",
+   "namn": "Lidingö",
+   "kortnamn": "lidingo",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0187",
+   "namn": "Vaxholm",
+   "kortnamn": "vaxholm",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0188",
+   "namn": "Norrtälje",
+   "kortnamn": "norrtalje",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0191",
+   "namn": "Sigtuna",
+   "kortnamn": "sigtuna",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0192",
+   "namn": "Nynäshamn",
+   "kortnamn": "nynashamn",
+   "typ": "kommun",
+   "lan": "Stockholms län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län"
+  },
+  {
+   "kod": "0305",
+   "namn": "Håbo",
+   "kortnamn": "habo",
+   "typ": "kommun",
+   "lan": "Uppsala län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0319",
+   "namn": "Älvkarleby",
+   "kortnamn": "alvkarleby",
+   "typ": "kommun",
+   "lan": "Uppsala län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0330",
+   "namn": "Knivsta",
+   "kortnamn": "knivsta",
+   "typ": "kommun",
+   "lan": "Uppsala län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0331",
+   "namn": "Heby",
+   "kortnamn": "heby",
+   "typ": "kommun",
+   "lan": "Uppsala län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0360",
+   "namn": "Tierp",
+   "kortnamn": "tierp",
+   "typ": "kommun",
+   "lan": "Uppsala län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0380",
+   "namn": "Uppsala",
+   "kortnamn": "uppsala",
+   "typ": "kommun",
+   "lan": "Uppsala län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0381",
+   "namn": "Enköping",
+   "kortnamn": "enkoping",
+   "typ": "kommun",
+   "lan": "Uppsala län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0382",
+   "namn": "Östhammar",
+   "kortnamn": "osthammar",
+   "typ": "kommun",
+   "lan": "Uppsala län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0428",
+   "namn": "Vingåker",
+   "kortnamn": "vingaker",
+   "typ": "kommun",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0461",
+   "namn": "Gnesta",
+   "kortnamn": "gnesta",
+   "typ": "kommun",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0480",
+   "namn": "Nyköping",
+   "kortnamn": "nykoping",
+   "typ": "kommun",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0481",
+   "namn": "Oxelösund",
+   "kortnamn": "oxelosund",
+   "typ": "kommun",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0482",
+   "namn": "Flen",
+   "kortnamn": "flen",
+   "typ": "kommun",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0483",
+   "namn": "Katrineholm",
+   "kortnamn": "katrineholm",
+   "typ": "kommun",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0484",
+   "namn": "Eskilstuna",
+   "kortnamn": "eskilstuna",
+   "typ": "kommun",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0486",
+   "namn": "Strängnäs",
+   "kortnamn": "strangnas",
+   "typ": "kommun",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0488",
+   "namn": "Trosa",
+   "kortnamn": "trosa",
+   "typ": "kommun",
+   "lan": "Södermanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "0509",
+   "namn": "Ödeshög",
+   "kortnamn": "odeshog",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0512",
+   "namn": "Ydre",
+   "kortnamn": "ydre",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0513",
+   "namn": "Kinda",
+   "kortnamn": "kinda",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0560",
+   "namn": "Boxholm",
+   "kortnamn": "boxholm",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0561",
+   "namn": "Åtvidaberg",
+   "kortnamn": "atvidaberg",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0562",
+   "namn": "Finspång",
+   "kortnamn": "finspang",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0563",
+   "namn": "Valdemarsvik",
+   "kortnamn": "valdemarsvik",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0580",
+   "namn": "Linköping",
+   "kortnamn": "linkoping",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0581",
+   "namn": "Norrköping",
+   "kortnamn": "norrkoping",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0582",
+   "namn": "Söderköping",
+   "kortnamn": "soderkoping",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0583",
+   "namn": "Motala",
+   "kortnamn": "motala",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0584",
+   "namn": "Vadstena",
+   "kortnamn": "vadstena",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0586",
+   "namn": "Mjölby",
+   "kortnamn": "mjolby",
+   "typ": "kommun",
+   "lan": "Östergötlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0604",
+   "namn": "Aneby",
+   "kortnamn": "aneby",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0617",
+   "namn": "Gnosjö",
+   "kortnamn": "gnosjo",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0642",
+   "namn": "Mullsjö",
+   "kortnamn": "mullsjo",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0643",
+   "namn": "Habo",
+   "kortnamn": "habo-0643",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0662",
+   "namn": "Gislaved",
+   "kortnamn": "gislaved",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0665",
+   "namn": "Vaggeryd",
+   "kortnamn": "vaggeryd",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0680",
+   "namn": "Jönköping",
+   "kortnamn": "jonkoping",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0682",
+   "namn": "Nässjö",
+   "kortnamn": "nassjo",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0683",
+   "namn": "Värnamo",
+   "kortnamn": "varnamo",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0684",
+   "namn": "Sävsjö",
+   "kortnamn": "savsjo",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0685",
+   "namn": "Vetlanda",
+   "kortnamn": "vetlanda",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0686",
+   "namn": "Eksjö",
+   "kortnamn": "eksjo",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0687",
+   "namn": "Tranås",
+   "kortnamn": "tranas",
+   "typ": "kommun",
+   "lan": "Jönköpings län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0760",
+   "namn": "Uppvidinge",
+   "kortnamn": "uppvidinge",
+   "typ": "kommun",
+   "lan": "Kronobergs län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "0761",
+   "namn": "Lessebo",
+   "kortnamn": "lessebo",
+   "typ": "kommun",
+   "lan": "Kronobergs län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "0763",
+   "namn": "Tingsryd",
+   "kortnamn": "tingsryd",
+   "typ": "kommun",
+   "lan": "Kronobergs län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "0764",
+   "namn": "Alvesta",
+   "kortnamn": "alvesta",
+   "typ": "kommun",
+   "lan": "Kronobergs län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "0765",
+   "namn": "Älmhult",
+   "kortnamn": "almhult",
+   "typ": "kommun",
+   "lan": "Kronobergs län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "0767",
+   "namn": "Markaryd",
+   "kortnamn": "markaryd",
+   "typ": "kommun",
+   "lan": "Kronobergs län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "0780",
+   "namn": "Växjö",
+   "kortnamn": "vaxjo",
+   "typ": "kommun",
+   "lan": "Kronobergs län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "0781",
+   "namn": "Ljungby",
+   "kortnamn": "ljungby",
+   "typ": "kommun",
+   "lan": "Kronobergs län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "0821",
+   "namn": "Högsby",
+   "kortnamn": "hogsby",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0834",
+   "namn": "Torsås",
+   "kortnamn": "torsas",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0840",
+   "namn": "Mörbylånga",
+   "kortnamn": "morbylanga",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0860",
+   "namn": "Hultsfred",
+   "kortnamn": "hultsfred",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0861",
+   "namn": "Mönsterås",
+   "kortnamn": "monsteras",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0862",
+   "namn": "Emmaboda",
+   "kortnamn": "emmaboda",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0880",
+   "namn": "Kalmar",
+   "kortnamn": "kalmar",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0881",
+   "namn": "Nybro",
+   "kortnamn": "nybro",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0882",
+   "namn": "Oskarshamn",
+   "kortnamn": "oskarshamn",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0883",
+   "namn": "Västervik",
+   "kortnamn": "vastervik",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0884",
+   "namn": "Vimmerby",
+   "kortnamn": "vimmerby",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0885",
+   "namn": "Borgholm",
+   "kortnamn": "borgholm",
+   "typ": "kommun",
+   "lan": "Kalmar län",
+   "tillsyn_cyber": "Länsstyrelsen i Östergötlands län"
+  },
+  {
+   "kod": "0980",
+   "namn": "Region Gotland",
+   "kortnamn": "gotland",
+   "typ": "kommun_region",
+   "lan": "Gotlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Stockholms län (offentlig förvaltning) och Inspektionen för vård och omsorg (vårdgivare)"
+  },
+  {
+   "kod": "1060",
+   "namn": "Olofström",
+   "kortnamn": "olofstrom",
+   "typ": "kommun",
+   "lan": "Blekinge län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1080",
+   "namn": "Karlskrona",
+   "kortnamn": "karlskrona",
+   "typ": "kommun",
+   "lan": "Blekinge län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1081",
+   "namn": "Ronneby",
+   "kortnamn": "ronneby",
+   "typ": "kommun",
+   "lan": "Blekinge län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1082",
+   "namn": "Karlshamn",
+   "kortnamn": "karlshamn",
+   "typ": "kommun",
+   "lan": "Blekinge län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1083",
+   "namn": "Sölvesborg",
+   "kortnamn": "solvesborg",
+   "typ": "kommun",
+   "lan": "Blekinge län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1214",
+   "namn": "Svalöv",
+   "kortnamn": "svalov",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1230",
+   "namn": "Staffanstorp",
+   "kortnamn": "staffanstorp",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1231",
+   "namn": "Burlöv",
+   "kortnamn": "burlov",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1233",
+   "namn": "Vellinge",
+   "kortnamn": "vellinge",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1256",
+   "namn": "Östra Göinge",
+   "kortnamn": "ostra-goinge",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1257",
+   "namn": "Örkelljunga",
+   "kortnamn": "orkelljunga",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1260",
+   "namn": "Bjuv",
+   "kortnamn": "bjuv",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1261",
+   "namn": "Kävlinge",
+   "kortnamn": "kavlinge",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1262",
+   "namn": "Lomma",
+   "kortnamn": "lomma",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1263",
+   "namn": "Svedala",
+   "kortnamn": "svedala",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1264",
+   "namn": "Skurup",
+   "kortnamn": "skurup",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1265",
+   "namn": "Sjöbo",
+   "kortnamn": "sjobo",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1266",
+   "namn": "Hörby",
+   "kortnamn": "horby",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1267",
+   "namn": "Höör",
+   "kortnamn": "hoor",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1270",
+   "namn": "Tomelilla",
+   "kortnamn": "tomelilla",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1272",
+   "namn": "Bromölla",
+   "kortnamn": "bromolla",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1273",
+   "namn": "Osby",
+   "kortnamn": "osby",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1275",
+   "namn": "Perstorp",
+   "kortnamn": "perstorp",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1276",
+   "namn": "Klippan",
+   "kortnamn": "klippan",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1277",
+   "namn": "Åstorp",
+   "kortnamn": "astorp",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1278",
+   "namn": "Båstad",
+   "kortnamn": "bastad",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1280",
+   "namn": "Malmö",
+   "kortnamn": "malmo",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1281",
+   "namn": "Lund",
+   "kortnamn": "lund",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1282",
+   "namn": "Landskrona",
+   "kortnamn": "landskrona",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1283",
+   "namn": "Helsingborg",
+   "kortnamn": "helsingborg",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1284",
+   "namn": "Höganäs",
+   "kortnamn": "hoganas",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1285",
+   "namn": "Eslöv",
+   "kortnamn": "eslov",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1286",
+   "namn": "Ystad",
+   "kortnamn": "ystad",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1287",
+   "namn": "Trelleborg",
+   "kortnamn": "trelleborg",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1290",
+   "namn": "Kristianstad",
+   "kortnamn": "kristianstad",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1291",
+   "namn": "Simrishamn",
+   "kortnamn": "simrishamn",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1292",
+   "namn": "Ängelholm",
+   "kortnamn": "angelholm",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1293",
+   "namn": "Hässleholm",
+   "kortnamn": "hassleholm",
+   "typ": "kommun",
+   "lan": "Skåne län",
+   "tillsyn_cyber": "Länsstyrelsen i Skåne län"
+  },
+  {
+   "kod": "1315",
+   "namn": "Hylte",
+   "kortnamn": "hylte",
+   "typ": "kommun",
+   "lan": "Hallands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1380",
+   "namn": "Halmstad",
+   "kortnamn": "halmstad",
+   "typ": "kommun",
+   "lan": "Hallands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1381",
+   "namn": "Laholm",
+   "kortnamn": "laholm",
+   "typ": "kommun",
+   "lan": "Hallands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1382",
+   "namn": "Falkenberg",
+   "kortnamn": "falkenberg",
+   "typ": "kommun",
+   "lan": "Hallands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1383",
+   "namn": "Varberg",
+   "kortnamn": "varberg",
+   "typ": "kommun",
+   "lan": "Hallands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1384",
+   "namn": "Kungsbacka",
+   "kortnamn": "kungsbacka",
+   "typ": "kommun",
+   "lan": "Hallands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1401",
+   "namn": "Härryda",
+   "kortnamn": "harryda",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1402",
+   "namn": "Partille",
+   "kortnamn": "partille",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1407",
+   "namn": "Öckerö",
+   "kortnamn": "ockero",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1415",
+   "namn": "Stenungsund",
+   "kortnamn": "stenungsund",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1419",
+   "namn": "Tjörn",
+   "kortnamn": "tjorn",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1421",
+   "namn": "Orust",
+   "kortnamn": "orust",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1427",
+   "namn": "Sotenäs",
+   "kortnamn": "sotenas",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1430",
+   "namn": "Munkedal",
+   "kortnamn": "munkedal",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1435",
+   "namn": "Tanum",
+   "kortnamn": "tanum",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1438",
+   "namn": "Dals-Ed",
+   "kortnamn": "dals-ed",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1439",
+   "namn": "Färgelanda",
+   "kortnamn": "fargelanda",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1440",
+   "namn": "Ale",
+   "kortnamn": "ale",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1441",
+   "namn": "Lerum",
+   "kortnamn": "lerum",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1442",
+   "namn": "Vårgårda",
+   "kortnamn": "vargarda",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1443",
+   "namn": "Bollebygd",
+   "kortnamn": "bollebygd",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1444",
+   "namn": "Grästorp",
+   "kortnamn": "grastorp",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1445",
+   "namn": "Essunga",
+   "kortnamn": "essunga",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1446",
+   "namn": "Karlsborg",
+   "kortnamn": "karlsborg",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1447",
+   "namn": "Gullspång",
+   "kortnamn": "gullspang",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1452",
+   "namn": "Tranemo",
+   "kortnamn": "tranemo",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1460",
+   "namn": "Bengtsfors",
+   "kortnamn": "bengtsfors",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1461",
+   "namn": "Mellerud",
+   "kortnamn": "mellerud",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1462",
+   "namn": "Lilla Edet",
+   "kortnamn": "lilla-edet",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1463",
+   "namn": "Mark",
+   "kortnamn": "mark",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1465",
+   "namn": "Svenljunga",
+   "kortnamn": "svenljunga",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1466",
+   "namn": "Herrljunga",
+   "kortnamn": "herrljunga",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1470",
+   "namn": "Vara",
+   "kortnamn": "vara",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1471",
+   "namn": "Götene",
+   "kortnamn": "gotene",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1472",
+   "namn": "Tibro",
+   "kortnamn": "tibro",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1473",
+   "namn": "Töreboda",
+   "kortnamn": "toreboda",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1480",
+   "namn": "Göteborg",
+   "kortnamn": "goteborg",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1481",
+   "namn": "Mölndal",
+   "kortnamn": "molndal",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1482",
+   "namn": "Kungälv",
+   "kortnamn": "kungalv",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1484",
+   "namn": "Lysekil",
+   "kortnamn": "lysekil",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1485",
+   "namn": "Uddevalla",
+   "kortnamn": "uddevalla",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1486",
+   "namn": "Strömstad",
+   "kortnamn": "stromstad",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1487",
+   "namn": "Vänersborg",
+   "kortnamn": "vanersborg",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1488",
+   "namn": "Trollhättan",
+   "kortnamn": "trollhattan",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1489",
+   "namn": "Alingsås",
+   "kortnamn": "alingsas",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1490",
+   "namn": "Borås",
+   "kortnamn": "boras",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1491",
+   "namn": "Ulricehamn",
+   "kortnamn": "ulricehamn",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1492",
+   "namn": "Åmål",
+   "kortnamn": "amal",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1493",
+   "namn": "Mariestad",
+   "kortnamn": "mariestad",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1494",
+   "namn": "Lidköping",
+   "kortnamn": "lidkoping",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1495",
+   "namn": "Skara",
+   "kortnamn": "skara",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1496",
+   "namn": "Skövde",
+   "kortnamn": "skovde",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1497",
+   "namn": "Hjo",
+   "kortnamn": "hjo",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1498",
+   "namn": "Tidaholm",
+   "kortnamn": "tidaholm",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1499",
+   "namn": "Falköping",
+   "kortnamn": "falkoping",
+   "typ": "kommun",
+   "lan": "Västra Götalands län",
+   "tillsyn_cyber": "Länsstyrelsen i Västra Götalands län"
+  },
+  {
+   "kod": "1715",
+   "namn": "Kil",
+   "kortnamn": "kil",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1730",
+   "namn": "Eda",
+   "kortnamn": "eda",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1737",
+   "namn": "Torsby",
+   "kortnamn": "torsby",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1760",
+   "namn": "Storfors",
+   "kortnamn": "storfors",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1761",
+   "namn": "Hammarö",
+   "kortnamn": "hammaro",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1762",
+   "namn": "Munkfors",
+   "kortnamn": "munkfors",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1763",
+   "namn": "Forshaga",
+   "kortnamn": "forshaga",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1764",
+   "namn": "Grums",
+   "kortnamn": "grums",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1765",
+   "namn": "Årjäng",
+   "kortnamn": "arjang",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1766",
+   "namn": "Sunne",
+   "kortnamn": "sunne",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1780",
+   "namn": "Karlstad",
+   "kortnamn": "karlstad",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1781",
+   "namn": "Kristinehamn",
+   "kortnamn": "kristinehamn",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1782",
+   "namn": "Filipstad",
+   "kortnamn": "filipstad",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1783",
+   "namn": "Hagfors",
+   "kortnamn": "hagfors",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1784",
+   "namn": "Arvika",
+   "kortnamn": "arvika",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1785",
+   "namn": "Säffle",
+   "kortnamn": "saffle",
+   "typ": "kommun",
+   "lan": "Värmlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1814",
+   "namn": "Lekeberg",
+   "kortnamn": "lekeberg",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1860",
+   "namn": "Laxå",
+   "kortnamn": "laxa",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1861",
+   "namn": "Hallsberg",
+   "kortnamn": "hallsberg",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1862",
+   "namn": "Degerfors",
+   "kortnamn": "degerfors",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1863",
+   "namn": "Hällefors",
+   "kortnamn": "hallefors",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1864",
+   "namn": "Ljusnarsberg",
+   "kortnamn": "ljusnarsberg",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1880",
+   "namn": "Örebro",
+   "kortnamn": "orebro",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1881",
+   "namn": "Kumla",
+   "kortnamn": "kumla",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1882",
+   "namn": "Askersund",
+   "kortnamn": "askersund",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1883",
+   "namn": "Karlskoga",
+   "kortnamn": "karlskoga",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1884",
+   "namn": "Nora",
+   "kortnamn": "nora",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1885",
+   "namn": "Lindesberg",
+   "kortnamn": "lindesberg",
+   "typ": "kommun",
+   "lan": "Örebro län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1904",
+   "namn": "Skinnskatteberg",
+   "kortnamn": "skinnskatteberg",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1907",
+   "namn": "Surahammar",
+   "kortnamn": "surahammar",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1960",
+   "namn": "Kungsör",
+   "kortnamn": "kungsor",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1961",
+   "namn": "Hallstahammar",
+   "kortnamn": "hallstahammar",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1962",
+   "namn": "Norberg",
+   "kortnamn": "norberg",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1980",
+   "namn": "Västerås",
+   "kortnamn": "vasteras",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1981",
+   "namn": "Sala",
+   "kortnamn": "sala",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1982",
+   "namn": "Fagersta",
+   "kortnamn": "fagersta",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1983",
+   "namn": "Köping",
+   "kortnamn": "koping",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "1984",
+   "namn": "Arboga",
+   "kortnamn": "arboga",
+   "typ": "kommun",
+   "lan": "Västmanlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2021",
+   "namn": "Vansbro",
+   "kortnamn": "vansbro",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2023",
+   "namn": "Malung-Sälen",
+   "kortnamn": "malung-salen",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2026",
+   "namn": "Gagnef",
+   "kortnamn": "gagnef",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2029",
+   "namn": "Leksand",
+   "kortnamn": "leksand",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2031",
+   "namn": "Rättvik",
+   "kortnamn": "rattvik",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2034",
+   "namn": "Orsa",
+   "kortnamn": "orsa",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2039",
+   "namn": "Älvdalen",
+   "kortnamn": "alvdalen",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2061",
+   "namn": "Smedjebacken",
+   "kortnamn": "smedjebacken",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2062",
+   "namn": "Mora",
+   "kortnamn": "mora",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2080",
+   "namn": "Falun",
+   "kortnamn": "falun",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2081",
+   "namn": "Borlänge",
+   "kortnamn": "borlange",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2082",
+   "namn": "Säter",
+   "kortnamn": "sater",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2083",
+   "namn": "Hedemora",
+   "kortnamn": "hedemora",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2084",
+   "namn": "Avesta",
+   "kortnamn": "avesta",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2085",
+   "namn": "Ludvika",
+   "kortnamn": "ludvika",
+   "typ": "kommun",
+   "lan": "Dalarnas län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2101",
+   "namn": "Ockelbo",
+   "kortnamn": "ockelbo",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2104",
+   "namn": "Hofors",
+   "kortnamn": "hofors",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2121",
+   "namn": "Ovanåker",
+   "kortnamn": "ovanaker",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2132",
+   "namn": "Nordanstig",
+   "kortnamn": "nordanstig",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2161",
+   "namn": "Ljusdal",
+   "kortnamn": "ljusdal",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2180",
+   "namn": "Gävle",
+   "kortnamn": "gavle",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2181",
+   "namn": "Sandviken",
+   "kortnamn": "sandviken",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2182",
+   "namn": "Söderhamn",
+   "kortnamn": "soderhamn",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2183",
+   "namn": "Bollnäs",
+   "kortnamn": "bollnas",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2184",
+   "namn": "Hudiksvall",
+   "kortnamn": "hudiksvall",
+   "typ": "kommun",
+   "lan": "Gävleborgs län",
+   "tillsyn_cyber": "Länsstyrelsen i Örebro län"
+  },
+  {
+   "kod": "2260",
+   "namn": "Ånge",
+   "kortnamn": "ange",
+   "typ": "kommun",
+   "lan": "Västernorrlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2262",
+   "namn": "Timrå",
+   "kortnamn": "timra",
+   "typ": "kommun",
+   "lan": "Västernorrlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2280",
+   "namn": "Härnösand",
+   "kortnamn": "harnosand",
+   "typ": "kommun",
+   "lan": "Västernorrlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2281",
+   "namn": "Sundsvall",
+   "kortnamn": "sundsvall",
+   "typ": "kommun",
+   "lan": "Västernorrlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2282",
+   "namn": "Kramfors",
+   "kortnamn": "kramfors",
+   "typ": "kommun",
+   "lan": "Västernorrlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2283",
+   "namn": "Sollefteå",
+   "kortnamn": "solleftea",
+   "typ": "kommun",
+   "lan": "Västernorrlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2284",
+   "namn": "Örnsköldsvik",
+   "kortnamn": "ornskoldsvik",
+   "typ": "kommun",
+   "lan": "Västernorrlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2303",
+   "namn": "Ragunda",
+   "kortnamn": "ragunda",
+   "typ": "kommun",
+   "lan": "Jämtlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2305",
+   "namn": "Bräcke",
+   "kortnamn": "bracke",
+   "typ": "kommun",
+   "lan": "Jämtlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2309",
+   "namn": "Krokom",
+   "kortnamn": "krokom",
+   "typ": "kommun",
+   "lan": "Jämtlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2313",
+   "namn": "Strömsund",
+   "kortnamn": "stromsund",
+   "typ": "kommun",
+   "lan": "Jämtlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2321",
+   "namn": "Åre",
+   "kortnamn": "are",
+   "typ": "kommun",
+   "lan": "Jämtlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2326",
+   "namn": "Berg",
+   "kortnamn": "berg",
+   "typ": "kommun",
+   "lan": "Jämtlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2361",
+   "namn": "Härjedalen",
+   "kortnamn": "harjedalen",
+   "typ": "kommun",
+   "lan": "Jämtlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2380",
+   "namn": "Östersund",
+   "kortnamn": "ostersund",
+   "typ": "kommun",
+   "lan": "Jämtlands län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2401",
+   "namn": "Nordmaling",
+   "kortnamn": "nordmaling",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2403",
+   "namn": "Bjurholm",
+   "kortnamn": "bjurholm",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2404",
+   "namn": "Vindeln",
+   "kortnamn": "vindeln",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2409",
+   "namn": "Robertsfors",
+   "kortnamn": "robertsfors",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2417",
+   "namn": "Norsjö",
+   "kortnamn": "norsjo",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2418",
+   "namn": "Malå",
+   "kortnamn": "mala",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2421",
+   "namn": "Storuman",
+   "kortnamn": "storuman",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2422",
+   "namn": "Sorsele",
+   "kortnamn": "sorsele",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2425",
+   "namn": "Dorotea",
+   "kortnamn": "dorotea",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2460",
+   "namn": "Vännäs",
+   "kortnamn": "vannas",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2462",
+   "namn": "Vilhelmina",
+   "kortnamn": "vilhelmina",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2463",
+   "namn": "Åsele",
+   "kortnamn": "asele",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2480",
+   "namn": "Umeå",
+   "kortnamn": "umea",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2481",
+   "namn": "Lycksele",
+   "kortnamn": "lycksele",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2482",
+   "namn": "Skellefteå",
+   "kortnamn": "skelleftea",
+   "typ": "kommun",
+   "lan": "Västerbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2505",
+   "namn": "Arvidsjaur",
+   "kortnamn": "arvidsjaur",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2506",
+   "namn": "Arjeplog",
+   "kortnamn": "arjeplog",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2510",
+   "namn": "Jokkmokk",
+   "kortnamn": "jokkmokk",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2513",
+   "namn": "Överkalix",
+   "kortnamn": "overkalix",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2514",
+   "namn": "Kalix",
+   "kortnamn": "kalix",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2518",
+   "namn": "Övertorneå",
+   "kortnamn": "overtornea",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2521",
+   "namn": "Pajala",
+   "kortnamn": "pajala",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2523",
+   "namn": "Gällivare",
+   "kortnamn": "gallivare",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2560",
+   "namn": "Älvsbyn",
+   "kortnamn": "alvsbyn",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2580",
+   "namn": "Luleå",
+   "kortnamn": "lulea",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2581",
+   "namn": "Piteå",
+   "kortnamn": "pitea",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2582",
+   "namn": "Boden",
+   "kortnamn": "boden",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2583",
+   "namn": "Haparanda",
+   "kortnamn": "haparanda",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  },
+  {
+   "kod": "2584",
+   "namn": "Kiruna",
+   "kortnamn": "kiruna",
+   "typ": "kommun",
+   "lan": "Norrbottens län",
+   "tillsyn_cyber": "Länsstyrelsen i Norrbottens län"
+  }
+ ]
+}

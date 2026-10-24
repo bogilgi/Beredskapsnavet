@@ -34,17 +34,24 @@ export function Panel({
   padding?: boolean;
 }) {
   return (
-    <section className={`kort ${className}`}>
+    <section className={`kort min-w-0 ${className}`}>
       {rubrik && (
         <div className="kort-rubrik">
           <div>
             <h2>{rubrik}</h2>
-            {beskrivning && <p className="text-xs text-slate-500 mt-0.5">{beskrivning}</p>}
+            {beskrivning && <p className="text-xs text-slate-600 mt-0.5">{beskrivning}</p>}
           </div>
-          {atgard && <div className="shrink-0">{atgard}</div>}
+          {atgard && <div className="shrink-0 max-w-full">{atgard}</div>}
         </div>
       )}
-      <div className={padding ? "p-4" : "overflow-x-auto"}>{children}</div>
+      {/* Ett vågrätt rullbart område måste gå att rulla med tangentbord, annars
+          når den som inte använder mus inte tabellens högra kolumner. */}
+      <div
+        className={padding ? "p-4" : "overflow-x-auto"}
+        tabIndex={padding ? undefined : 0}
+      >
+        {children}
+      </div>
     </section>
   );
 }
@@ -57,14 +64,24 @@ const TON_SOLID: Record<Ton, string> = {
   info: "bg-brand-500",
 };
 
+/**
+ * Andelsmätare.
+ *
+ * `etikett` är obligatorisk eftersom en progressbar utan tillgängligt namn är
+ * ett WCAG-fel: en skärmläsare läser "62 procent" utan att säga av vad. Kravet
+ * ligger i typen och inte i en kommentar, så att ett nytt anropsställe inte kan
+ * glömma den.
+ */
 export function Matare({
   del,
   helhet,
+  etikett,
   ton,
   visaText = true,
 }: {
   del: number;
   helhet: number;
+  etikett: string;
   ton?: Ton;
   visaText?: boolean;
 }) {
@@ -76,9 +93,11 @@ export function Matare({
       <div
         className="h-2 flex-1 min-w-16 rounded-full bg-slate-200 overflow-hidden"
         role="progressbar"
+        aria-label={etikett}
         aria-valuenow={p}
         aria-valuemin={0}
         aria-valuemax={100}
+        aria-valuetext={`${p} procent av ${helhet}`}
       >
         <div className={`h-full rounded-full ${TON_SOLID[t]}`} style={{ width: `${p}%` }} />
       </div>
@@ -147,7 +166,7 @@ export function Sidrubrik({
 }) {
   return (
     <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
-      <div className="max-w-3xl">
+      <div className="max-w-3xl min-w-0">
         <h1 className="text-xl font-semibold text-slate-900 tracking-tight">{rubrik}</h1>
         {lagrum && (
           <p className="mt-1 text-xs font-medium text-brand-700">{lagrum}</p>
@@ -156,7 +175,7 @@ export function Sidrubrik({
           <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{beskrivning}</p>
         )}
       </div>
-      {atgard && <div className="ej-utskrift shrink-0">{atgard}</div>}
+      {atgard && <div className="ej-utskrift shrink-0 max-w-full">{atgard}</div>}
     </header>
   );
 }

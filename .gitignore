@@ -9,3 +9,6 @@ node_modules
 
 tsconfig.tsbuildinfo
 .DS_Store
+
+# Testbygget av de rena modulerna
+.test-build

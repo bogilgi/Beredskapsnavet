@@ -47,7 +47,7 @@
     @apply bg-white rounded-lg border border-slate-200 shadow-sm;
   }
   .kort-rubrik {
-    @apply flex items-baseline justify-between gap-3 px-4 py-3 border-b border-slate-200;
+    @apply flex flex-wrap items-baseline justify-between gap-3 px-4 py-3 border-b border-slate-200;
   }
   .kort-rubrik h2 {
     @apply text-sm font-semibold text-slate-900 tracking-tight;

@@ -80,28 +80,56 @@ export default async function RsaSida() {
 
       <div className="grid gap-5 xl:grid-cols-5 mb-5">
         <Panel
-          className="xl:col-span-2"
+          className="xl:col-span-2 min-w-0"
           rubrik="Riskmatris"
           beskrivning="Siffrorna motsvarar raderna i risklistan nedan."
         >
+          {/* Matrisen får inte bära sin innebörd i färg allena (WCAG 1.4.1):
+              riskvärdet står därför med siffror i varje cell, och varje cell
+              bär en läsbar beskrivning av sitt läge och sitt innehåll.
+              Markörerna är aria-hidden, så att en skärmläsare läser en
+              sammanhängande mening per cell i stället för 25 lösa siffror. */}
           <div className="overflow-x-auto">
             <table className="w-full border-separate border-spacing-1">
+              <caption className="sr-only">
+                Riskmatris. Lodrät axel konsekvens, vågrät axel sannolikhet. Varje cell anger
+                riskvärde, nivå och vilka risker som ligger där.
+              </caption>
               <tbody>
                 {[5, 4, 3, 2, 1].map((k) => (
                   <tr key={k}>
-                    <th className="w-24 pr-2 text-right align-middle text-[11px] font-medium text-slate-500">
+                    <th
+                      scope="row"
+                      className="w-24 pr-2 text-right align-middle text-[11px] font-medium text-slate-600"
+                    >
                       {KONSEKVENS[k - 1]}
                     </th>
                     {[1, 2, 3, 4, 5].map((s) => {
                       const i = risker.filter(
                         (r) => r.sannolikhet === s && r.konsekvens === k,
                       );
+                      const varde = s * k;
+                      const niva = riskNivaText(s, k);
                       return (
                         <td
                           key={s}
-                          className={`h-14 rounded ring-1 ring-inset p-1 align-top ${cellFarg(s, k)}`}
+                          className={`relative h-14 rounded ring-1 ring-inset p-1 align-top ${cellFarg(s, k)}`}
                         >
-                          <div className="flex flex-wrap gap-1">
+                          <span className="sr-only">
+                            {`Sannolikhet ${s}, konsekvens ${k}. Riskvärde ${varde}, ${niva.toLowerCase()} nivå. `}
+                            {i.length === 0
+                              ? "Inga risker."
+                              : `${i.length} ${i.length === 1 ? "risk" : "risker"}: ${i
+                                  .map((r) => `nummer ${nummer.get(r.id)}, ${r.namn}`)
+                                  .join("; ")}.`}
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className="absolute right-1 top-0.5 text-[10px] font-medium tabular-nums text-slate-600"
+                          >
+                            {varde}
+                          </span>
+                          <div aria-hidden="true" className="flex flex-wrap gap-1 pr-4">
                             {i.map((r) => (
                               <span
                                 key={r.id}
@@ -118,11 +146,12 @@ export default async function RsaSida() {
                   </tr>
                 ))}
                 <tr>
-                  <th />
+                  <td />
                   {SANNOLIKHET.map((s) => (
                     <th
                       key={s}
-                      className="pt-1 text-[11px] font-medium text-slate-500 align-top leading-tight"
+                      scope="col"
+                      className="pt-1 text-[11px] font-medium text-slate-600 align-top leading-tight"
                     >
                       {s}
                     </th>
@@ -138,7 +167,7 @@ export default async function RsaSida() {
         </Panel>
 
         <Panel
-          className="xl:col-span-3"
+          className="xl:col-span-3 min-w-0"
           rubrik="Risker med hög nivå"
           beskrivning="Sorterade efter riskvärde. Bedömningen kan ändras direkt i listan nedan."
           padding={false}
@@ -218,7 +247,7 @@ export default async function RsaSida() {
                 <td className="text-xs text-slate-600">{RISKKATEGORI[r.kategori]}</td>
                 <td className="text-xs text-slate-600">
                   <div>{r.agare}</div>
-                  {r.kortnamn && <div className="text-slate-400">{r.kortnamn}</div>}
+                  {r.kortnamn && <div className="text-slate-600">{r.kortnamn}</div>}
                 </td>
                 <td>
                   <Pill ton={riskTon(r.sannolikhet, r.konsekvens)}>

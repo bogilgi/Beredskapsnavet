@@ -6,8 +6,15 @@
     "dev": "next dev -p 4010",
     "build": "next build",
     "start": "next start -p 4010",
+    "demo": "node scripts/demo.mjs",
     "db:reset": "node --experimental-sqlite scripts/seed.mjs",
-    "typecheck": "tsc --noEmit"
+    "installera": "node --experimental-sqlite scripts/installera.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --experimental-sqlite --test \"tests/*.test.mjs\"",
+    "test:watch": "node --experimental-sqlite --test --watch \"tests/*.test.mjs\"",
+    "tillganglighet": "node scripts/tillganglighet.mjs",
+    "tangentbord": "node scripts/tangentbord.mjs",
+    "prov-behorighet": "node --experimental-sqlite scripts/prov-behorighet.mjs"
   },
   "dependencies": {
     "next": "15.5.4",
@@ -21,5 +28,8 @@
     "@tailwindcss/postcss": "4.1.11",
     "tailwindcss": "4.1.11",
     "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=22 <23"
   }
 }

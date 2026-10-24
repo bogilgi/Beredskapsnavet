@@ -1,0 +1,106 @@
+name: Kontroll
+
+# Det som kontrolleras är detsamma som ska gå igenom lokalt: typer, tester och
+# produktionsbygget, och i ett eget jobb de prov som behöver en körande app och
+# en webbläsare.
+#
+# Push bara på main, och pull request för allt annat. Hade push gällt alla
+# grenar skulle varje commit på en gren med öppen pull request kontrolleras
+# två gånger.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  kontroll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # node:sqlite är experimentellt och kräver flaggan --experimental-sqlite
+          # på Node 22. Versionen är låst, eftersom databasen byggs med den.
+          node-version: "22"
+          cache: npm
+
+      - name: Installera beroenden
+        run: npm ci
+
+      - name: Typkontroll
+        run: npm run typecheck
+
+      - name: Tester
+        run: npm test
+
+      - name: Seeda databasen
+        # Seedningen är en del av bygget i praktiken: går den inte igenom går
+        # produkten inte att demonstrera.
+        run: npm run db:reset
+
+      - name: Produktionsbygge
+        run: npm run build
+
+  granskning:
+    # Proven som kräver en körande app och en webbläsare: angrepp mot
+    # behörighetsgränsen, WCAG-granskningen och tangentbordsvägen. De ligger i
+    # ett eget jobb därför att de behöver ladda ner en webbläsare, och den
+    # kostnaden ska inte ligga på typkontrollen.
+    #
+    # De är med i kontrollen och inte bara i dokumentationen av ett enkelt skäl:
+    # ett prov som bara körs för hand är ett prov som slutar köras. Tre av
+    # felen som proven finns för — en behörighetsväg från kommun till
+    # leverantör, ett breddgolv på 972 pixlar och fyra listor som hoppade undan
+    # när de ändrades — hittades av prov som dessa, inte av en läsning.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Installera beroenden
+        run: npm ci
+
+      # Granskningsverktygen är med avsikt inte beroenden i projektet: de ska
+      # inte följa med in i driften. Versionen är låst, så en ny webbläsare inte
+      # kan göra kontrollen röd utan att någon ändrat något.
+      - name: Installera granskningsverktygen
+        run: |
+          npm i --no-save playwright@1.49.1 axe-core@4.10.2
+          npx playwright install --with-deps chromium
+
+      - name: Seeda databasen
+        run: npm run db:reset
+
+      - name: Produktionsbygge
+        run: npm run build
+
+      - name: Starta appen och test-utfärdaren
+        run: |
+          # nohup, så processerna lever vidare när det här stegets skal
+          # avslutas och nästa steg kan prova mot dem.
+          nohup npx next start -p 4010 > /tmp/app.log 2>&1 &
+          nohup node scripts/test-idp.mjs > /tmp/idp.log 2>&1 &
+          for i in $(seq 1 60); do
+            app=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4010/logga-in || true)
+            idp=$(curl -s -o /dev/null -w "%{http_code}" \
+              http://localhost:4011/.well-known/openid-configuration || true)
+            if [ "$app" = "200" ] && [ "$idp" = "200" ]; then exit 0; fi
+            sleep 1
+          done
+          echo "Appen eller test-utfärdaren startade inte."
+          cat /tmp/app.log /tmp/idp.log
+          exit 1
+
+      - name: Angreppsprov mot behörighetsgränsen
+        run: npm run prov-behorighet
+
+      - name: Tillgänglighet (WCAG 2.1 AA, axe-core)
+        run: npm run tillganglighet
+
+      - name: Tangentbordsvägen
+        run: npm run tangentbord

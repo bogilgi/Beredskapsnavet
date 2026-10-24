@@ -5,13 +5,43 @@
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
+-- Nationellt register över samtliga kommuner och regioner.
+--
+-- Referensdata, inte kunddata: här finns en rad för varje organisation i
+-- landet, oavsett om den är kund. Att lägga upp en ny kund är ett val ur
+-- registret, inte ett formulär där någon skriver in länet för hand.
+--
+-- Gotland förekommer en gång, som typen kommun_region. Kommunen är en enda
+-- juridisk person som fullgör både kommunens och regionens uppgifter, och ska
+-- därför ha båda kravuppsättningarna. Antalet juridiska personer i landet är
+-- alltså 310, inte 290 + 21.
+CREATE TABLE org_registry (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  -- SCB:s kommunkod (fyra siffror) för kommun, länskod (två) för region.
+  kod           TEXT    NOT NULL UNIQUE,
+  namn          TEXT    NOT NULL UNIQUE,
+  kortnamn      TEXT    NOT NULL UNIQUE,
+  typ           TEXT    NOT NULL,            -- kommun | region | kommun_region
+  lan           TEXT    NOT NULL,
+  -- Följer av länet, och för region även av att regionen är vårdgivare.
+  tillsyn_cyber TEXT    NOT NULL
+);
+
+CREATE INDEX idx_registry_typ ON org_registry(typ);
+CREATE INDEX idx_registry_lan ON org_registry(lan);
+
 CREATE TABLE organisations (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
   kortnamn          TEXT    NOT NULL UNIQUE,      -- används i sökvägar och loggar
   namn              TEXT    NOT NULL,
-  typ               TEXT    NOT NULL,             -- kommun | region
+  -- Vilken rad i det nationella registret kunden svarar mot. Null bara för
+  -- organisationer som lagts upp innan registret fanns.
+  registry_id       INTEGER REFERENCES org_registry(id),
+  typ               TEXT    NOT NULL,             -- kommun | region | kommun_region
   lan               TEXT    NOT NULL,
-  invanare          INTEGER NOT NULL,
+  -- Null tills uppgiften är ifylld. Antalet invånare styr ingen bedömning i
+  -- systemet: storlekstestet i cybersäkerhetslagen utgår från anställda.
+  invanare          INTEGER,
   mandatperiod      TEXT    NOT NULL,             -- t.ex. "2027-2030"
   beredskapsniva    TEXT    NOT NULL,             -- fredstida | beredskapslarm | hojd_beredskap
   samordnare        TEXT    NOT NULL,
@@ -19,6 +49,10 @@ CREATE TABLE organisations (
   tib_telefon       TEXT    NOT NULL,
   uppdaterad        TEXT    NOT NULL,
   ansluten          TEXT    NOT NULL,             -- när kommunen började använda systemet
+  -- Tillsynsmyndighet enligt cybersäkerhetsförordningen (2025:1507). Följer av
+  -- länet, och för en region dessutom av att regionen är vårdgivare. Sätts när
+  -- organisationen läggs upp, eftersom den inte får härledas i varje fråga.
+  tillsyn_cyber     TEXT    NOT NULL DEFAULT '',
   aktiv             INTEGER NOT NULL DEFAULT 1
 );
 
@@ -51,6 +85,11 @@ CREATE TABLE positions (
 CREATE TABLE people (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
   org_id        INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  -- Nyckeln i kommunens personalsystem, normalt anställningsnumret. Den behövs
+  -- för att en import ska kunna uppdatera rätt person. Maskerat personnummer
+  -- duger inte: fyra siffror är bortmaskerade, och två personer födda samma
+  -- dag skulle slås ihop. Null för rader som matats in för hand.
+  extern_id         TEXT,
   namn              TEXT    NOT NULL,
   pnr_maskerat      TEXT    NOT NULL,             -- ÅÅÅÅMMDD-XXXX, fyra sista maskeras
   unit_id           INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
@@ -65,6 +104,10 @@ CREATE TABLE people (
   sakerhetsklass    TEXT    NOT NULL DEFAULT 'ingen',
   registerkontroll  TEXT    NOT NULL DEFAULT 'ej_aktuell', -- ej_aktuell | begard | klar | utgangen
   bortrest_risk     INTEGER NOT NULL DEFAULT 0,
+  -- När anställningen upphörde. Startpunkt för gallringsfristen: en person som
+  -- slutat ska inte ligga kvar i krigsorganisationen, och uppgifterna om
+  -- säkerhetsprövning ska inte sparas längre än kommunen beslutat.
+  anstallning_upphorde TEXT,
   noteringar        TEXT    NOT NULL DEFAULT ''
 );
 
@@ -174,28 +217,82 @@ CREATE TABLE actions (
   skapad        TEXT    NOT NULL
 );
 
--- Lagkrav och överenskommelser med status
-CREATE TABLE requirements (
+-- Lagkrav och överenskommelser.
+--
+-- Katalogen är GEMENSAM för alla organisationer. Lagen är densamma för alla
+-- kommuner och för alla regioner, så kravtexten får bara finnas på ett ställe:
+-- en rättad lagrumshänvisning ska slå igenom hos samtliga kunder samtidigt.
+-- Det som skiljer en organisation från en annan är status, ansvarig, underlag
+-- och förfallodatum, och det ligger i requirement_status.
+CREATE TABLE requirement_catalog (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  kod           TEXT    NOT NULL UNIQUE,
+  rubrik        TEXT    NOT NULL,
+  lagrum        TEXT    NOT NULL,
+  beskrivning   TEXT    NOT NULL DEFAULT '',
+  -- Vissa krav betyder olika saker beroende på organisationens storlek och län
+  -- (storleken avgör om en verksamhetsutövare är väsentlig eller viktig, länet
+  -- avgör tillsynsmyndighet). Sådan text får inte skrivas in i den delade
+  -- beskrivningen. Den ligger här som en mall med platshållare och fylls med
+  -- organisationens egna uppgifter vid läsning, av fyllKontext() i queries.ts.
+  kontextmall   TEXT    NOT NULL DEFAULT '',
+  intervall     TEXT    NOT NULL,             -- mandatperiod | arligen | lopande | engang
+  modul         TEXT    NOT NULL DEFAULT '',  -- vilken modul som styrker kravet
+  kalla_url     TEXT    NOT NULL DEFAULT '',
+  -- gallande | upphor | foreslagen. Ett krav som är på väg att ersättas måste
+  -- synas som sådant, eftersom listan används som tillsynsunderlag.
+  giltighet     TEXT    NOT NULL DEFAULT 'gallande',
+  giltighet_not TEXT    NOT NULL DEFAULT '',
+  -- Vilken typ av huvudman kravet gäller: kommun | region | bada.
+  -- Regioner är inte stora kommuner. De bär katastrofmedicinsk beredskap och
+  -- smittskydd, medan kommunerna bär räddningstjänst och vattenförsörjning.
+  galler_for    TEXT    NOT NULL DEFAULT 'bada',
+  standard_forfallo TEXT,                     -- katalogens förfallodatum, kan åsidosättas per org
+  -- Proveniens. Katalogen säljs som underlag vid tillsyn, och varje rad måste
+  -- därför gå att granska: mot vilken källa den stämdes av, när och av vem.
+  -- Ett krav som inte stämts av mot författningstext ska synas som sådant.
+  kontrollerad      TEXT NOT NULL DEFAULT '',
+  kontrollerad_av   TEXT NOT NULL DEFAULT '',
+  katalogversion    INTEGER NOT NULL DEFAULT 1
+);
+
+-- Ändringshistorik för den delade katalogen.
+--
+-- Katalogen är gemensam, så en rättelse slår igenom hos samtliga kunder
+-- samtidigt. Det är produktens poäng, men det gör också varje ändring
+-- riskabel: skriver redaktionen fel lagrum får 310 organisationer fel
+-- tillsynsunderlag. Varje ändring loggas därför med fält, före- och
+-- eftervärde, vem som gjorde den och varför.
+CREATE TABLE catalog_revisions (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  krav_id       INTEGER NOT NULL REFERENCES requirement_catalog(id) ON DELETE CASCADE,
+  tidpunkt      TEXT    NOT NULL,
+  anvandare     TEXT    NOT NULL,
+  falt          TEXT    NOT NULL,            -- vilket fält som ändrades
+  fran          TEXT    NOT NULL DEFAULT '',
+  till          TEXT    NOT NULL DEFAULT '',
+  motivering    TEXT    NOT NULL DEFAULT '',
+  -- Hur många organisationer ändringen slog igenom hos vid tillfället.
+  berorda       INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_revisions_krav ON catalog_revisions(krav_id, tidpunkt);
+
+-- Organisationens status på ett krav i katalogen. En rad per (org, krav) som
+-- gäller organisationen, skapad när organisationen läggs upp.
+CREATE TABLE requirement_status (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
-  org_id        INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
-  kod               TEXT    NOT NULL,
-  rubrik            TEXT    NOT NULL,
-  lagrum            TEXT    NOT NULL,
-  beskrivning       TEXT    NOT NULL DEFAULT '',
-  intervall         TEXT    NOT NULL,             -- mandatperiod | arligen | lopande | engang
-  status            TEXT    NOT NULL,             -- uppfylld | pagaende | brist | ej_paborjad
+  org_id            INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  krav_id           INTEGER NOT NULL REFERENCES requirement_catalog(id) ON DELETE CASCADE,
+  status            TEXT    NOT NULL DEFAULT 'ej_paborjad', -- uppfylld | pagaende | brist | ej_paborjad
   senast_genomfort  TEXT,
   nasta_forfallo    TEXT,
   ansvarig          TEXT    NOT NULL DEFAULT '',
   evidens           TEXT    NOT NULL DEFAULT '',
-  modul             TEXT    NOT NULL DEFAULT '',  -- vilken modul som styrker kravet
-  -- Källhänvisning till författningstexten, så att varje krav går att granska.
-  kalla_url         TEXT    NOT NULL DEFAULT '',
-  -- gallande | upphor | foreslagen. Lagstiftningen på området ändras, och
-  -- ett krav som är på väg att ersättas måste synas som sådant.
-  giltighet         TEXT    NOT NULL DEFAULT 'gallande',
-  giltighet_not     TEXT    NOT NULL DEFAULT '',
-  UNIQUE (org_id, kod)
+  -- Organisationens egen anteckning. Till skillnad från katalogtexten är den
+  -- lokal, och den följer aldrig med till en annan kommun.
+  lokal_not         TEXT    NOT NULL DEFAULT '',
+  UNIQUE (org_id, krav_id)
 );
 
 -- Användare. I skarp drift ersätts lösenord av federerad inloggning, men
@@ -207,6 +304,12 @@ CREATE TABLE users (
   losenord_hash     TEXT    NOT NULL,
   losenord_salt     TEXT    NOT NULL,
   aktiv             INTEGER NOT NULL DEFAULT 1,
+  -- Driftpersonal hos leverantören. Att lägga upp en NY organisation är till
+  -- sin natur en operation över organisationsgränsen, och får därför inte
+  -- följa av att någon är administratör i sin egen kommun. Rollen styr vad en
+  -- användare får göra inom en organisation; den här flaggan styr vad som får
+  -- göras utanför alla.
+  leverantor        INTEGER NOT NULL DEFAULT 0,
   senaste_inloggning TEXT,
   skapad            TEXT    NOT NULL
 );
@@ -222,6 +325,128 @@ CREATE TABLE user_orgs (
   PRIMARY KEY (user_id, org_id)
 );
 
+-- Inbjudan till en organisation.
+--
+-- Medvetet enkel och medvetet tillfällig. När inloggningen går mot kommunens
+-- katalogtjänst blir inbjudan en fråga om att koppla en grupp, inte om att
+-- skapa konton, och då försvinner tabellen.
+CREATE TABLE invitations (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  org_id        INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  epost         TEXT    NOT NULL,
+  roll          TEXT    NOT NULL,
+  unit_id       INTEGER REFERENCES units(id) ON DELETE SET NULL,
+  -- Själva koden lagras aldrig, bara hashen av den. Den som läser databasen
+  -- ska inte kunna ta över en obesvarad inbjudan.
+  token_hash    TEXT    NOT NULL,
+  token_salt    TEXT    NOT NULL,
+  skapad        TEXT    NOT NULL,
+  gar_ut        TEXT    NOT NULL,
+  inbjuden_av   TEXT    NOT NULL,
+  accepterad    TEXT,
+  -- En obesvarad inbjudan per adress och organisation. Samma person kan bjudas
+  -- in till flera organisationer.
+  UNIQUE (org_id, epost)
+);
+
+CREATE INDEX idx_invitations_org ON invitations(org_id, accepterad);
+
+-- Återställning av lokalt lösenord.
+--
+-- Initieras av organisationens administratör, inte av användaren själv.
+-- Installationen skickar ingen e-post och ska inte göra det — en kommun kör
+-- systemet i eget nät — så ett självbetjäningsflöde skulle sakna väg att nå
+-- användaren. Administratören får i stället en engångslänk att förmedla.
+--
+-- Behövs inte för federerade organisationer: där sköts lösenordet av
+-- katalogtjänsten.
+CREATE TABLE password_resets (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  -- Som för inbjudan lagras bara hashen av koden.
+  token_hash    TEXT    NOT NULL,
+  token_salt    TEXT    NOT NULL,
+  skapad        TEXT    NOT NULL,
+  gar_ut        TEXT    NOT NULL,
+  begard_av     TEXT    NOT NULL,
+  anvand        TEXT
+);
+
+CREATE INDEX idx_resets_user ON password_resets(user_id, anvand);
+
+-- Federerad inloggning per organisation.
+--
+-- Varje kommun har sin egen katalogtjänst, så konfigurationen hör till
+-- organisationen och inte till installationen. Lokala lösenord finns kvar för
+-- de organisationer som inte konfigurerat någon leverantör, och för
+-- leverantörens egen driftpersonal.
+CREATE TABLE org_idp (
+  org_id          INTEGER PRIMARY KEY REFERENCES organisations(id) ON DELETE CASCADE,
+  -- Utfärdaren, t.ex. https://login.microsoftonline.com/<tenant>/v2.0.
+  -- Discovery-dokumentet hämtas från <issuer>/.well-known/openid-configuration.
+  issuer          TEXT    NOT NULL,
+  client_id       TEXT    NOT NULL,
+  client_secret   TEXT    NOT NULL,
+  -- Texten på knappen, t.ex. "Logga in med kommunens konto".
+  knapptext       TEXT    NOT NULL DEFAULT 'Logga in med organisationskonto',
+  -- Krävd autentiseringsmetod i amr-anspråket, t.ex. "mfa". Tom = inget krav.
+  -- Flerfaktor ska verifieras mot vad utfärdaren FAKTISKT gjorde, inte antas.
+  krav_amr        TEXT    NOT NULL DEFAULT '',
+  -- Vilka e-postdomäner utfärdaren får intyga, kommaseparerat, t.ex.
+  -- "nordmark.se,nordmark.kommun.se".
+  --
+  -- Utan den här spärren kan VARJE konfigurerad utfärdare intyga VARJE adress
+  -- i installationen: kontot slås upp på adressen, och adressen kommer ur den
+  -- token utfärdaren själv skrivit. En kommuns IT-avdelning hade därmed kunnat
+  -- logga in som leverantörens driftpersonal. Domänen är den gräns som säger
+  -- vilka identiteter utfärdaren har något att säga om.
+  --
+  -- Tom = ingen federerad inloggning tillåts. Standardvärdet nekar med flit:
+  -- ett tomt fält som betydde "alla domäner" vore samma hål igen.
+  epost_domaner   TEXT    NOT NULL DEFAULT '',
+  -- Med 0 nekas inloggning för den som saknar medlemskap. Med 1 skapas
+  -- medlemskapet automatiskt med rollen nedan.
+  auto_medlemskap INTEGER NOT NULL DEFAULT 0,
+  auto_roll       TEXT    NOT NULL DEFAULT 'kommunledning',
+  aktiv           INTEGER NOT NULL DEFAULT 1
+);
+
+-- Påbörjade inloggningar. En rad per klick på inloggningsknappen.
+--
+-- state och nonce måste lagras på servern mellan utresan och återkomsten, så
+-- att svaret från utfärdaren går att binda till just den här begäran. Utan det
+-- går inloggningen att starta från en annan flik.
+/*
+ * Federerade identiteter: vilket konto en utfärdares sub svarar mot.
+ *
+ * Nyckeln är utfärdarens sub och inte e-postadressen. En adress kan skrivas
+ * om i en katalogtjänst och ges till en annan person; sub är per definition
+ * stabil och unik hos utfärdaren. Slogs kontot bara upp på adressen vid varje
+ * inloggning skulle en omskriven adress tysta ge åtkomst till fel konto.
+ *
+ * Bindningen skapas vid den första federerade inloggningen, när adressen ännu
+ * är det enda som finns att gå på, och gäller därefter.
+ */
+CREATE TABLE federated_identities (
+  issuer   TEXT    NOT NULL,
+  sub      TEXT    NOT NULL,
+  user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  org_id   INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  -- Adressen vid bindningen. Bara för spårbarhet: den är inte nyckeln.
+  epost    TEXT    NOT NULL,
+  skapad   TEXT    NOT NULL,
+  PRIMARY KEY (issuer, sub)
+);
+
+CREATE TABLE oidc_requests (
+  state           TEXT    PRIMARY KEY,
+  org_id          INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  nonce           TEXT    NOT NULL,
+  code_verifier   TEXT    NOT NULL,
+  skapad          TEXT    NOT NULL,
+  gar_ut          TEXT    NOT NULL
+);
+
 -- Sessioner lagras i databasen i stället för enbart i en cookie, så att en
 -- session kan återkallas och så att aktiva inloggningar går att granska.
 CREATE TABLE sessions (
@@ -235,6 +460,27 @@ CREATE TABLE sessions (
 );
 
 CREATE INDEX idx_sessions_user ON sessions(user_id);
+
+-- Gallringsfrister per kategori av personuppgifter.
+--
+-- Fristen är INTE en teknisk inställning utan ett arkivrättsligt beslut.
+-- Kommunens gallring styrs av arkivlagen (1990:782) och kommunens egen
+-- dokumenthanteringsplan, beslutad av arkivmyndigheten. Systemet får därför
+-- inte ha en inbyggd frist som utger sig för att vara lag: raden finns med
+-- frist NULL tills kommunen beslutat, och visas till dess som obeslutad.
+CREATE TABLE gallringsregler (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  org_id          INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  kategori        TEXT    NOT NULL,          -- nyckel i PERSONUPPGIFTER, se personuppgifter.ts
+  -- Antal månader efter att uppgiften blivit inaktuell. NULL = ej beslutad.
+  frist_manader   INTEGER,
+  beslutad_av     TEXT    NOT NULL DEFAULT '',
+  beslutsdatum    TEXT,
+  anmarkning      TEXT    NOT NULL DEFAULT '',
+  UNIQUE (org_id, kategori)
+);
+
+CREATE INDEX idx_gallring_org ON gallringsregler(org_id);
 
 -- Spårbarhet: varje ändring loggas (krav vid tillsyn och säkerhetsskyddsanalys)
 CREATE TABLE audit_log (
@@ -256,13 +502,19 @@ CREATE INDEX idx_dependencies_org  ON dependencies(org_id);
 CREATE INDEX idx_resources_org     ON resources(org_id);
 CREATE INDEX idx_exercises_org     ON exercises(org_id);
 CREATE INDEX idx_actions_org       ON actions(org_id);
-CREATE INDEX idx_requirements_org  ON requirements(org_id);
+CREATE INDEX idx_reqstatus_org     ON requirement_status(org_id);
+CREATE INDEX idx_reqstatus_krav    ON requirement_status(krav_id);
+CREATE INDEX idx_catalog_galler    ON requirement_catalog(galler_for);
 CREATE INDEX idx_audit_org         ON audit_log(org_id, tidpunkt);
 CREATE INDEX idx_user_orgs_org     ON user_orgs(org_id);
 CREATE INDEX idx_positions_unit    ON positions(unit_id);
 CREATE INDEX idx_people_unit       ON people(unit_id);
+-- Nyckeln är unik inom organisationen, inte globalt: två kommuner numrerar
+-- sin personal oberoende av varandra.
+CREATE UNIQUE INDEX idx_people_extern ON people(org_id, extern_id) WHERE extern_id IS NOT NULL;
 CREATE INDEX idx_placements_pos    ON placements(position_id);
 CREATE INDEX idx_placements_person ON placements(person_id);
 CREATE INDEX idx_dependencies_fn   ON dependencies(function_id);
 CREATE INDEX idx_actions_status    ON actions(status);
 CREATE INDEX idx_actions_forfallo  ON actions(forfallodatum);
+CREATE INDEX idx_federated_user    ON federated_identities(user_id);

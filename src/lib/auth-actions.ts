@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "node:crypto";
 import { logga, one } from "@/lib/db";
 import {
   avslutaSession, bytOrganisationPaSession, hamtaAnvandare, hamtaMedlemskap,
@@ -17,6 +18,14 @@ type Rad = {
   losenord_salt: string;
 };
 
+/*
+ * Salt för en hashning som aldrig kan stämma. Finns bara för att en okänd
+ * adress ska kosta lika mycket arbete som en känd: scrypt tar tiotals
+ * millisekunder, och hoppades det över när adressen saknas skulle
+ * svarstiden avslöja precis det som feltexten döljer.
+ */
+const BLINDSALT = randomBytes(16).toString("hex");
+
 export async function loggaIn(_tidigare: string | null, formData: FormData): Promise<string | null> {
   const epost = String(formData.get("epost") ?? "").trim().toLowerCase();
   const losenord = String(formData.get("losenord") ?? "");
@@ -28,8 +37,14 @@ export async function loggaIn(_tidigare: string | null, formData: FormData): Pro
   );
 
   // Samma svar oavsett om kontot saknas eller lösenordet är fel, så att
-  // inloggningssidan inte avslöjar vilka adresser som finns.
-  if (!rad || !verifieraLosenord(losenord, rad.losenord_salt, rad.losenord_hash)) {
+  // inloggningssidan inte avslöjar vilka adresser som finns. Hashningen görs
+  // alltid, även när adressen är okänd, så att inte heller svarstiden gör det.
+  const stammer = verifieraLosenord(
+    losenord,
+    rad ? rad.losenord_salt : BLINDSALT,
+    rad ? rad.losenord_hash : "",
+  );
+  if (!rad || !stammer) {
     logga(null, epost || "okänd", "Misslyckad inloggning", "");
     return "Fel e-postadress eller lösenord.";
   }
