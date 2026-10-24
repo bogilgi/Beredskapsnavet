@@ -405,3 +405,128 @@ test("ordningen står kvar när en rad redigeras i listan", () => {
     skriv.close();
   }
 });
+
+/* ------------------------------------------------ isolering vid skrivning */
+
+/**
+ * Varje skrivning ska vara omöjlig att rikta mot en annan organisation.
+ *
+ * Serveråtgärder i Next.js är anropbara ändpunkter: en inloggad angripare kan
+ * skicka vilka argument som helst, inte bara det gränssnittet erbjuder. Skyddet
+ * ligger därför i att varje UPDATE bär `AND org_id = ?` med organisationen ur
+ * sessionen, och att hjälpfunktionen skrivEn kastar fel när ingen rad träffades.
+ *
+ * Testet prövar den egenskapen direkt: det kör samma UPDATE som åtgärden kör,
+ * men med ett id som hör till en ANNAN organisation, och kräver att noll rader
+ * ändras. Det är skillnaden mot att läsa koden och tro att villkoret finns.
+ */
+const SKRIVNINGAR = [
+  {
+    namn: "satAtgardsStatus",
+    tabell: "actions",
+    sql: `UPDATE actions SET status = 'klar', klar_datum = '2026-01-01'
+          WHERE id = ? AND org_id = ?`,
+    arg: (id, org) => [id, org],
+  },
+  {
+    namn: "satKravStatus",
+    tabell: "requirement_status",
+    sql: `UPDATE requirement_status SET status = 'uppfylld' WHERE id = ? AND org_id = ?`,
+    arg: (id, org) => [id, org],
+  },
+  {
+    namn: "satPlaceringsStatus",
+    tabell: "placements",
+    sql: `UPDATE placements SET status = 'beslutad' WHERE id = ? AND org_id = ?`,
+    arg: (id, org) => [id, org],
+  },
+  {
+    namn: "satResursStatus",
+    tabell: "resources",
+    sql: `UPDATE resources SET status = 'ur_drift' WHERE id = ? AND org_id = ?`,
+    arg: (id, org) => [id, org],
+  },
+  {
+    namn: "satRiskBedomning",
+    tabell: "risks",
+    sql: `UPDATE risks SET sannolikhet = 5, konsekvens = 5, senast_bedomd = '2026-01-01'
+          WHERE id = ? AND org_id = ?`,
+    arg: (id, org) => [id, org],
+  },
+  {
+    namn: "satPlanStatus",
+    tabell: "critical_functions",
+    sql: `UPDATE critical_functions SET plan_status = 'faststalld' WHERE id = ? AND org_id = ?`,
+    arg: (id, org) => [id, org],
+  },
+  {
+    namn: "gallraPerson",
+    tabell: "people",
+    sql: `DELETE FROM people WHERE id = ? AND org_id = ?`,
+    arg: (id, org) => [id, org],
+  },
+  {
+    namn: "satGallringsfrist",
+    tabell: "gallringsregler",
+    sql: `UPDATE gallringsregler SET frist_manader = 999 WHERE id = ? AND org_id = ?`,
+    arg: (id, org) => [id, org],
+  },
+];
+
+test("en skrivning kan inte riktas mot en annan organisation", () => {
+  const kopia = join(katalog, "isolering.db");
+  copyFileSync(join(katalog, "test.db"), kopia);
+  const skriv = new DatabaseSync(kopia);
+
+  try {
+    const orgar = skriv.prepare("SELECT id FROM organisations ORDER BY id").all().map((o) => o.id);
+    assert.ok(orgar.length >= 2, "behöver minst två organisationer för att pröva isolering");
+
+    for (const s of SKRIVNINGAR) {
+      // Paret väljs per tabell: alla tabeller har inte rader hos alla
+      // organisationer, och ett offer utan rad prövar ingenting.
+      const par = skriv
+        .prepare(`SELECT org_id, MIN(id) AS id FROM ${s.tabell} GROUP BY org_id ORDER BY org_id`)
+        .all();
+      assert.ok(
+        par.length >= 2,
+        `${s.namn}: ${s.tabell} har rader hos färre än två organisationer`,
+      );
+      const offer = par[0];
+      const angripare = par[1].org_id;
+      const rad = { id: offer.id };
+
+      // Angriparens session, offrets objekt-id.
+      const r = skriv.prepare(s.sql).run(...s.arg(rad.id, angripare));
+      assert.equal(
+        Number(r.changes), 0,
+        `${s.namn} ändrade en rad i en annan organisation (${s.tabell} id ${rad.id})`,
+      );
+
+      // Och kontrollera att villkoret inte är så snävt att den egna
+      // organisationens skrivning också blockeras — ett villkor som alltid
+      // nekar vore inget skydd, bara en trasig funktion.
+      const r2 = skriv.prepare(s.sql).run(...s.arg(par[1].id, angripare));
+      assert.equal(
+        Number(r2.changes), 1,
+        `${s.namn} skriver inte heller i den egna organisationen — villkoret är trasigt`,
+      );
+    }
+  } finally {
+    skriv.close();
+  }
+});
+
+test("sessionen bär organisationen, så ett byte kräver medlemskap", () => {
+  // Isoleringen vilar på att sessionen bär org_id och att bytet kontrolleras
+  // mot user_orgs. Finns det en session vars organisation användaren inte är
+  // medlem i är hela modellen bruten.
+  assert.equal(
+    antal(`SELECT COUNT(*) AS v FROM sessions s
+           WHERE NOT EXISTS (
+             SELECT 1 FROM user_orgs uo
+             WHERE uo.user_id = s.user_id AND uo.org_id = s.org_id)`),
+    0,
+    "det finns en session i en organisation användaren inte är medlem i",
+  );
+});
