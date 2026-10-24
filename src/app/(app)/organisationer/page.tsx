@@ -1,5 +1,6 @@
 import { kravLeverantor } from "@/lib/session";
 import { Panel, Sidrubrik, Stat, Pill, Notis, Tomt } from "@/components/ui";
+import { Formular } from "@/components/formular";
 import { laggUppOrganisation } from "@/lib/admin-actions";
 import { hamtaKravantalPerTyp, hamtaRegister } from "@/lib/queries";
 import { datum, tal } from "@/lib/format";
@@ -81,7 +82,7 @@ export default async function Organisationssida({
           rubrik={`Anslut ${valdForAnslutning.namn}`}
           beskrivning={`${TYPNAMN[valdForAnslutning.typ]} i ${valdForAnslutning.lan}, kommunkod ${valdForAnslutning.kod}. Får ${kravantal[valdForAnslutning.typ] ?? 0} krav ur katalogen. Tillsynsmyndighet enligt cybersäkerhetsförordningen: ${valdForAnslutning.tillsyn_cyber}.`}
         >
-          <form action={laggUppOrganisation} className="grid gap-4 sm:grid-cols-2 max-w-3xl">
+          <Formular action={laggUppOrganisation} knapp="Anslut organisationen" avbryt="/organisationer" className="grid gap-4 sm:grid-cols-2 max-w-3xl">
             <input type="hidden" name="registry_id" value={valdForAnslutning.id} />
             <Falt
               namn="samordnare"
@@ -102,15 +103,7 @@ export default async function Organisationssida({
               etikett="Antal invånare"
               hjalp="Frivilligt. Styr ingen bedömning: storlekstestet i cybersäkerhetslagen utgår från antal anställda."
             />
-            <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-              <button type="submit" className="knapp-primar">
-                Anslut organisationen
-              </button>
-              <a href="/organisationer" className="knapp-sekundar">
-                Avbryt
-              </a>
-            </div>
-          </form>
+          </Formular>
         </Panel>
       )}
 

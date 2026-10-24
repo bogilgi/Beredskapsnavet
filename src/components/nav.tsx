@@ -10,7 +10,7 @@ const GRUPPER: { titel: string; moduler: Modul[] }[] = [
   { titel: "Analys", moduler: ["rsa", "kontinuitet"] },
   { titel: "Förmåga", moduler: ["resurser", "ovningar"] },
   { titel: "Underlag", moduler: ["rapport"] },
-  { titel: "Administration", moduler: ["anvandare", "organisationer"] },
+  { titel: "Administration", moduler: ["anvandare", "organisationer", "katalog"] },
 ];
 
 export function Nav({ synliga }: { synliga: readonly Modul[] }) {

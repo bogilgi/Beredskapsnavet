@@ -84,6 +84,8 @@ segmentet.
 ```
 db/schema.sql          Datamodell, inkl. delad kravkatalog och status per org
 scripts/data/          Nationellt organisationsregister, vendorat med proveniens
+src/lib/katalog-actions.ts  Redaktionen: ändring, avstämning och nya krav
+src/lib/formsvar.ts    Serveråtgärder som svarar med text i stället för att krascha
 scripts/seed.mjs       Demodata för Ängsholms kommun
 src/lib/db.ts          Anslutning, frågehjälpare, spårbarhetslogg
 src/lib/queries.ts     Alla läsningar och de automatiska kontrollerna
@@ -153,6 +155,46 @@ stämdes av och av vem. **En tom `kontrollerad` betyder att raden inte är avst�
 mot författningstext**, och raden visas då som *Ej avstämd mot källa* i
 gränssnittet och i CSV-exporten. Ett krav som ingen kontrollerat får inte se
 likadant ut som ett som är kontrollerat.
+
+## Redaktionen för kravkatalogen
+
+Modulen *Kravkatalogen* är där lagtexten underhålls. Varje rad visar hur många
+organisationer den finns hos, så att den som rättar ett lagrum ser att
+ändringen når 287 kommuner och inte tror att den gäller en. Ändringen kräver
+ingen skrivning hos kunderna: texten är delad, och det är hela vinsten med
+modellen.
+
+Tre regler gäller i `src/lib/katalog-actions.ts`:
+
+1. **Leverantörsbehörighet krävs.** En ändring i katalogen är inte en åtgärd
+   inom en organisation utan över samtliga.
+2. **Varje ändrat fält loggas** i `catalog_revisions` med före- och eftervärde,
+   vem som gjorde den, varför, och hur många organisationer den nådde.
+   Historiken är underlaget när en kund frågar varför ett lagrum i deras lista
+   ser annorlunda ut än förra kvartalet. Motiveringen är obligatorisk.
+3. **En ändring som skulle radera kundernas arbete stoppas.** Begränsas ett krav
+   från `bada` till `kommun` försvinner det ur regionernas listor — med deras
+   underlag, ansvariga och genomförandedatum. Har någon av dem redovisat arbete
+   nekas ändringen, med uppmaningen att markera kravet som upphört i stället.
+   Det bevarar redovisningen och är dessutom juridiskt riktigare: ett krav som
+   upphört har gällt.
+
+Att lägga till ett krav skriver det en gång och lägger det hos varje kund av
+rätt huvudmannatyp. Det är vägen in för en ny lag, och precis vad omläggningen
+till LKRB kräver. Nya krav läggs in som **ej avstämda**: att skriva in ett
+lagrum är inte detsamma som att ha kontrollerat det mot författningstexten.
+
+### Fel som går att läsa
+
+Serveråtgärder som validerar indata kastar inte fel, utan svarar med text.
+Next.js döljer felmeddelanden från serveråtgärder i produktionsläge, så ett
+kastat fel når användaren som en generisk krasch utan förklaring — och en spärr
+som ingen kan läsa är ingen spärr. Mönstret ligger i `src/lib/formsvar.ts` och
+`src/components/formular.tsx`.
+
+Komponenten återställer dessutom inmatningen när en åtgärd svarat med fel.
+React 19 nollställer okontrollerade formulär när en åtgärd är klar, vilket annars
+innebär att en lång beskrivning försvinner för att motiveringen var för kort.
 
 ## Nationellt organisationsregister
 
@@ -295,19 +337,14 @@ saknas medvetet:
    Demokommunens tillsynsmyndighet följer av cybersäkerhetsförordningen
    (2025:1507) och är Länsstyrelsen i Örebro län. Den kopplingen mellan län och
    tillsynsmyndighet behöver sättas per kund.
-5. **Redaktionellt gränssnitt för katalogen.** Katalogen är delad, men den
-   redigeras i dag genom seedning. Det som saknas är ett gränssnitt där
-   redaktionen kan rätta ett lagrum, versionera ändringen och se vilka kunder
-   den slår igenom hos. `katalogversion` finns i datamodellen men används inte
-   ännu.
-6. **Regionkraven behöver juridisk granskning.** Kraven `HSL-KATASTROF`,
+5. **Regionkraven behöver juridisk granskning.** Kraven `HSL-KATASTROF`,
    `HSL-UTLAND` och `OK-REGION` är avstämda mot källa, men `SMITTSKYDD` saknar
    verifierad paragrafhänvisning och är markerat som ej avstämt. Dessutom
    upphörde SOSFS 2013:22 om katastrofmedicinsk beredskap vid utgången av 2025
    genom HSLF-FS 2025:69, utan att någon motsvarande föreskrift för beredskap
    inom landet har kunnat bekräftas. Skyldigheten i 7 kap. 2 § HSL kvarstår,
    men föreskriftsläget måste stämmas av innan listan används vid tillsyn.
-7. **Inbjudan av användare.** En organisation kan läggas upp ur registret, och
+6. **Inbjudan av användare.** En organisation kan läggas upp ur registret, och
    den som gör det får administratörsbehörighet i den. Att bjuda in övriga
    användare saknas fortfarande och görs genom seedning. Funktionen hänger ihop
    med punkt 1: med federerad inloggning blir inbjudan en fråga om att koppla

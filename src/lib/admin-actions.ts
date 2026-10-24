@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { logga, one, run } from "@/lib/db";
-import { aterkallaSessionerIOrg, kravLeverantor, kravSkriv } from "@/lib/session";
+import { aterkallaSessionerIOrg, kravLeverantor, kravSkriv, type Anvandare } from "@/lib/session";
+import { svara, type FormSvar } from "@/lib/formsvar";
 import { ROLLER, type Roll } from "@/lib/behorighet";
 import { idag } from "@/lib/format";
 
@@ -70,8 +71,7 @@ export async function tvingaUtloggning(userId: number) {
  * Kravlistan skapas ur den delade katalogen efter huvudmannatyp. Gotland är
  * både kommun och region och får därför båda uppsättningarna.
  */
-export async function laggUppOrganisation(formData: FormData) {
-  const a = await kravLeverantor("organisationer");
+async function laggUppOrganisationInre(a: Anvandare, formData: FormData): Promise<string> {
 
   const registryId = Number(formData.get("registry_id"));
   const reg = one<{
@@ -139,4 +139,16 @@ export async function laggUppOrganisation(formData: FormData) {
   logga(a.org_id, a.namn, "Anslöt ny organisation", reg.namn);
   revalidatePath("/organisationer");
   revalidatePath("/anvandare");
+  return (
+    `${reg.namn} är ansluten med ${antal} krav ur katalogen. ` +
+    `Du har administratörsbehörighet i organisationen och kan byta till den i topbaren.`
+  );
+}
+
+/* ------------------------------------------------------------------ omslag */
+// Spärren körs utanför felhanteringen, eftersom den omdirigerar genom att
+// kasta. Valideringsfel besvaras med text i formuläret.
+export async function laggUppOrganisation(formData: FormData): Promise<FormSvar> {
+  const a = await kravLeverantor("organisationer");
+  return svara(() => laggUppOrganisationInre(a, formData));
 }

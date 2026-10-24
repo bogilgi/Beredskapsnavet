@@ -247,6 +247,28 @@ CREATE TABLE requirement_catalog (
   katalogversion    INTEGER NOT NULL DEFAULT 1
 );
 
+-- Ändringshistorik för den delade katalogen.
+--
+-- Katalogen är gemensam, så en rättelse slår igenom hos samtliga kunder
+-- samtidigt. Det är produktens poäng, men det gör också varje ändring
+-- riskabel: skriver redaktionen fel lagrum får 310 organisationer fel
+-- tillsynsunderlag. Varje ändring loggas därför med fält, före- och
+-- eftervärde, vem som gjorde den och varför.
+CREATE TABLE catalog_revisions (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  krav_id       INTEGER NOT NULL REFERENCES requirement_catalog(id) ON DELETE CASCADE,
+  tidpunkt      TEXT    NOT NULL,
+  anvandare     TEXT    NOT NULL,
+  falt          TEXT    NOT NULL,            -- vilket fält som ändrades
+  fran          TEXT    NOT NULL DEFAULT '',
+  till          TEXT    NOT NULL DEFAULT '',
+  motivering    TEXT    NOT NULL DEFAULT '',
+  -- Hur många organisationer ändringen slog igenom hos vid tillfället.
+  berorda       INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_revisions_krav ON catalog_revisions(krav_id, tidpunkt);
+
 -- Organisationens status på ett krav i katalogen. En rad per (org, krav) som
 -- gäller organisationen, skapad när organisationen läggs upp.
 CREATE TABLE requirement_status (

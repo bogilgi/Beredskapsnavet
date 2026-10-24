@@ -481,6 +481,51 @@ export function hamtaOversikt(orgId: number): Oversikt {
   };
 }
 
+/* ------------------------------------------------------- kravkatalogen */
+
+export type Katalograd = {
+  id: number; kod: string; rubrik: string; lagrum: string; beskrivning: string;
+  kontextmall: string; intervall: string; modul: string; kalla_url: string;
+  giltighet: string; giltighet_not: string; galler_for: string;
+  standard_forfallo: string | null;
+  kontrollerad: string; kontrollerad_av: string; katalogversion: number;
+  /** Antal organisationer som har kravet i sin lista. */
+  berorda: number;
+  /** Hur många av dem som redovisat arbete på kravet. */
+  paborjade: number;
+  revisioner: number;
+};
+
+/**
+ * Hela den delade katalogen, med hur många kunder varje rad slår igenom hos.
+ *
+ * Siffran berorda är det som gör redaktionsarbetet begripligt: den som rättar
+ * ett lagrum ska se att ändringen når 287 kommuner, inte tro att den gäller en.
+ */
+export const hamtaKatalog = () =>
+  all<Katalograd>(`
+    SELECT k.*,
+      (SELECT COUNT(*) FROM requirement_status s WHERE s.krav_id = k.id) AS berorda,
+      (SELECT COUNT(*) FROM requirement_status s
+        WHERE s.krav_id = k.id AND s.status <> 'ej_paborjad') AS paborjade,
+      (SELECT COUNT(*) FROM catalog_revisions v WHERE v.krav_id = k.id) AS revisioner
+    FROM requirement_catalog k
+    ORDER BY k.kontrollerad = '' DESC, k.galler_for, k.kod
+  `);
+
+export type Revision = {
+  id: number; krav_id: number; kod: string; rubrik: string; tidpunkt: string;
+  anvandare: string; falt: string; fran: string; till: string;
+  motivering: string; berorda: number;
+};
+
+export const hamtaRevisioner = (gransvarde = 40) =>
+  all<Revision>(`
+    SELECT v.*, k.kod, k.rubrik
+    FROM catalog_revisions v JOIN requirement_catalog k ON k.id = v.krav_id
+    ORDER BY v.id DESC LIMIT ?
+  `, gransvarde);
+
 /* --------------------------------------------------- nationellt register */
 
 export type Registerrad = {
