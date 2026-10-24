@@ -200,6 +200,19 @@ det. Att svara "fel uppgifter" när katalogtjänsten är nere skickar folk till
 lösenordsåterställning i onödan, och "kunde inte verifieras" när andrafaktorn
 saknas säger inte att den saknas.
 
+### Lösenord för konton som inte är federerade
+
+En organisations administratör skapar en engångslänk som användaren sätter ett
+nytt lösenord med. Återställningen initieras alltså av administratören och inte
+av användaren själv: installationen skickar ingen e-post — en kommun kör
+systemet i eget nät — så ett självbetjäningsflöde skulle sakna väg att nå
+användaren. Länken gäller i ett dygn, är engångsgiltig, och en tidigare
+obesvarad länk slutar gälla när en ny skapas.
+
+När lösenordet bytts **avslutas kontots alla pågående sessioner**. Har någon
+annan kommit åt kontot ska en återställning kasta ut den, inte låta den sitta
+kvar.
+
 ### Prova utan katalogtjänst
 
 `scripts/test-idp.mjs` är en riktig OIDC-utfärdare i miniatyr: den signerar
@@ -453,21 +466,17 @@ kommunledning i Ängsholm, så administrationsmodulen försvinner när hon byter
 
 ## Vad som återstår före skarp drift
 
-Demon är komplett som produktdemo men inte som driftsatt system. Följande
-saknas medvetet:
+Demon är komplett som produktdemo men inte som driftsatt system. Det som
+återstår är i huvudsak beslut och granskning hos kunden, inte funktioner:
 
-1. **Lösenordsåterställning för icke-federerade konton.** Federerad inloggning
-   finns, och med den försvinner lösenorden för de kommuner som konfigurerat en
-   katalogtjänst. Kvar står de som inte gjort det, och leverantörens
-   driftpersonal. För dem saknas återställning: i dag krävs en ny inbjudan.
-2. **Personuppgiftshantering: beslut återstår, inte funktion.** Rättslig grund
+1. **Personuppgiftshantering: beslut återstår, inte funktion.** Rättslig grund
    är dokumenterad och gallringsrutinen finns, men fristerna måste beslutas av
    varje kommuns arkivmyndighet, och förteckningen granskas av
    dataskyddsombudet. Det är arbete hos kunden, inte i koden.
-3. **Direktintegration mot personalsystemet.** Filimport finns, med nyckel,
+2. **Direktintegration mot personalsystemet.** Filimport finns, med nyckel,
    torrkörning och validering. Att hämta personallistan automatiskt kräver en
    motpart att integrera mot och avtalas per kund.
-4. **Bevakning av rättsläget.** Lagrum, intervall och förfallodatum är
+3. **Bevakning av rättsläget.** Lagrum, intervall och förfallodatum är
    kontrollerade mot författningstexten i oktober 2026, och varje krav bär en
    källhänvisning och en rättslig status i gränssnittet. Regelverket är dock
    under omarbetning: LEH föreslås ersättas av lagen om kommuners och regioners
@@ -483,7 +492,7 @@ saknas medvetet:
    Demokommunens tillsynsmyndighet följer av cybersäkerhetsförordningen
    (2025:1507) och är Länsstyrelsen i Örebro län. Den kopplingen mellan län och
    tillsynsmyndighet behöver sättas per kund.
-5. **Regionkraven behöver juridisk granskning.** Kraven `HSL-KATASTROF`,
+4. **Regionkraven behöver juridisk granskning.** Kraven `HSL-KATASTROF`,
    `HSL-UTLAND` och `OK-REGION` är avstämda mot källa, men `SMITTSKYDD` saknar
    verifierad paragrafhänvisning och är markerat som ej avstämt. Dessutom
    upphörde SOSFS 2013:22 om katastrofmedicinsk beredskap vid utgången av 2025

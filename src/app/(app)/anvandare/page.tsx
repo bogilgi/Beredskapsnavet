@@ -2,6 +2,7 @@ import { Panel, Sidrubrik, Stat, Pill, Notis } from "@/components/ui";
 import { Vaxlare, AtgardsKnapp } from "@/components/kontroller";
 import { satRoll, taBortMedlemskap, tvingaUtloggning } from "@/lib/admin-actions";
 import { bjudInAnvandare, aterkallaInbjudan } from "@/lib/inbjudan-actions";
+import { begarAterstallning } from "@/lib/losenord-actions";
 import { Formular } from "@/components/formular";
 import { kravLas } from "@/lib/session";
 import { hamtaAnvandarlista, hamtaInbjudningar, hamtaLogg, hamtaUnits } from "@/lib/queries";
@@ -181,6 +182,36 @@ export default async function Anvandarsida() {
                     {e.namn}
                   </option>
                 ))}
+              </select>
+            </label>
+          </Formular>
+        </Panel>
+      )}
+
+      {skriv && (
+        <Panel
+          className="mb-5"
+          rubrik="Återställ lösenord"
+          beskrivning="Skapar en engångslänk som användaren sätter ett nytt lösenord med. Installationen skickar ingen e-post, så länken förmedlar du själv. Alla pågående sessioner på kontot avslutas när lösenordet byts. Konton som loggar in mot katalogtjänsten behöver normalt ingen återställning."
+        >
+          <Formular
+            action={begarAterstallning}
+            knapp="Skapa återställningslänk"
+            className="grid gap-4 sm:grid-cols-2 max-w-3xl"
+          >
+            <label className="block text-sm sm:col-span-2">
+              <span className="block mb-1 font-medium text-slate-700">Konto</span>
+              <select name="user_id" required defaultValue="" className="falt w-full">
+                <option value="" disabled>
+                  Välj en användare
+                </option>
+                {lista
+                  .filter((a) => a.aktiv === 1)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.namn} — {a.epost}
+                    </option>
+                  ))}
               </select>
             </label>
           </Formular>

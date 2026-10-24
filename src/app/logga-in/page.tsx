@@ -51,9 +51,9 @@ const FELTEXT: Record<string, string> = {
 export default async function Inloggningssida({
   searchParams,
 }: {
-  searchParams: Promise<{ valkommen?: string; fel?: string }>;
+  searchParams: Promise<{ valkommen?: string; fel?: string; aterstallt?: string }>;
 }) {
-  const { valkommen, fel } = await searchParams;
+  const { valkommen, fel, aterstallt } = await searchParams;
   const anvandare = await hamtaAnvandare();
   if (anvandare) redirect(startsida(anvandare.roll));
   const organisationer = hamtaOrganisationer();
@@ -98,6 +98,15 @@ export default async function Inloggningssida({
               <p className="text-sm text-slate-800 leading-relaxed">
                 <span className="font-medium">Kontot är klart.</span> Du har nu behörighet till{" "}
                 {valkommen}. Logga in med din e-postadress och det lösenord du valde.
+              </p>
+            </div>
+          )}
+
+          {aterstallt && (
+            <div role="status" className="kort p-4 border-l-4 border-ok-solid">
+              <p className="text-sm text-slate-800 leading-relaxed">
+                <span className="font-medium">Lösenordet är bytt.</span> Alla tidigare sessioner
+                på kontot har avslutats. Logga in med det nya lösenordet.
               </p>
             </div>
           )}

@@ -351,6 +351,29 @@ CREATE TABLE invitations (
 
 CREATE INDEX idx_invitations_org ON invitations(org_id, accepterad);
 
+-- Återställning av lokalt lösenord.
+--
+-- Initieras av organisationens administratör, inte av användaren själv.
+-- Installationen skickar ingen e-post och ska inte göra det — en kommun kör
+-- systemet i eget nät — så ett självbetjäningsflöde skulle sakna väg att nå
+-- användaren. Administratören får i stället en engångslänk att förmedla.
+--
+-- Behövs inte för federerade organisationer: där sköts lösenordet av
+-- katalogtjänsten.
+CREATE TABLE password_resets (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  -- Som för inbjudan lagras bara hashen av koden.
+  token_hash    TEXT    NOT NULL,
+  token_salt    TEXT    NOT NULL,
+  skapad        TEXT    NOT NULL,
+  gar_ut        TEXT    NOT NULL,
+  begard_av     TEXT    NOT NULL,
+  anvand        TEXT
+);
+
+CREATE INDEX idx_resets_user ON password_resets(user_id, anvand);
+
 -- Federerad inloggning per organisation.
 --
 -- Varje kommun har sin egen katalogtjänst, så konfigurationen hör till
