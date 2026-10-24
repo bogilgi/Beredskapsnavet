@@ -574,6 +574,24 @@ export type AnvandarRad = {
   skapad: string; aktiva_sessioner: number; antal_organisationer: number;
 };
 
+export type Inbjudan = {
+  id: number; epost: string; roll: string; unit_id: number | null;
+  kortnamn: string | null; skapad: string; gar_ut: string;
+  inbjuden_av: string; accepterad: string | null; har_konto: number;
+};
+
+/** Obesvarade inbjudningar till organisationen. */
+export const hamtaInbjudningar = (orgId: number) =>
+  all<Inbjudan>(`
+    SELECT i.id, i.epost, i.roll, i.unit_id, i.skapad, i.gar_ut, i.inbjuden_av,
+           i.accepterad, u.kortnamn,
+           (SELECT COUNT(*) FROM users x WHERE x.epost = i.epost) AS har_konto
+    FROM invitations i
+    LEFT JOIN units u ON u.id = i.unit_id
+    WHERE i.org_id = ? AND i.accepterad IS NULL
+    ORDER BY i.skapad DESC
+  `, orgId);
+
 /** Användare med behörighet till organisationen. Andra kommuners konton syns inte. */
 export const hamtaAnvandarlista = (orgId: number) =>
   all<AnvandarRad>(`

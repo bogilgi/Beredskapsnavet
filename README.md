@@ -86,6 +86,7 @@ db/schema.sql          Datamodell, inkl. delad kravkatalog och status per org
 scripts/data/          Nationellt organisationsregister, vendorat med proveniens
 src/lib/katalog-actions.ts  Redaktionen: ändring, avstämning och nya krav
 src/lib/formsvar.ts    Serveråtgärder som svarar med text i stället för att krascha
+src/lib/inbjudan*.ts   Inbjudan av användare, med engångskod och hashad token
 scripts/seed.mjs       Demodata för Ängsholms kommun
 src/lib/db.ts          Anslutning, frågehjälpare, spårbarhetslogg
 src/lib/queries.ts     Alla läsningar och de automatiska kontrollerna
@@ -155,6 +156,29 @@ stämdes av och av vem. **En tom `kontrollerad` betyder att raden inte är avst�
 mot författningstext**, och raden visas då som *Ej avstämd mot källa* i
 gränssnittet och i CSV-exporten. Ett krav som ingen kontrollerat får inte se
 likadant ut som ett som är kontrollerat.
+
+## Inbjudan av användare
+
+En organisations administratör bjuder in till **sin egen** organisation och
+väljer roll. Till skillnad från att ansluta en ny organisation krävs ingen
+leverantörsbehörighet: det är en åtgärd inom organisationen.
+
+Har personen redan ett konto, till exempel för att hen arbetar i en annan
+kommun, tillkommer bara medlemskapet. Lösenordet rörs inte, och den andra
+kommunens behörighet påverkas inte.
+
+Koden i länken **lagras aldrig i klartext**, bara som hash med salt. Den som
+läser databasen ska inte kunna ta över en obesvarad inbjudan. Länken visas en
+gång när inbjudan skapas och går inte att läsa igen — installationen skickar
+ingen e-post, och ska inte göra det, eftersom en kommun kör systemet i eget
+nät. Förmedlingen sköter kommunen på det sätt den själv valt.
+
+Inbjudan gäller i sju dygn och är engångsgiltig. En besvarad, utgången,
+återkallad eller felaktig länk ger **samma** besked, så att sidan inte går att
+använda för att ta reda på vilka adresser som är inbjudna.
+
+Lokala lösenord kräver minst tolv tecken. Det är en tillfällig lösning: se
+punkt 1 under *Vad som återstår*.
 
 ## Redaktionen för kravkatalogen
 
@@ -344,8 +368,4 @@ saknas medvetet:
    genom HSLF-FS 2025:69, utan att någon motsvarande föreskrift för beredskap
    inom landet har kunnat bekräftas. Skyldigheten i 7 kap. 2 § HSL kvarstår,
    men föreskriftsläget måste stämmas av innan listan används vid tillsyn.
-6. **Inbjudan av användare.** En organisation kan läggas upp ur registret, och
-   den som gör det får administratörsbehörighet i den. Att bjuda in övriga
-   användare saknas fortfarande och görs genom seedning. Funktionen hänger ihop
-   med punkt 1: med federerad inloggning blir inbjudan en fråga om att koppla
-   en katalogtjänst, inte om att skapa konton.
+

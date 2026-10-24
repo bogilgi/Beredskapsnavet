@@ -316,6 +316,32 @@ CREATE TABLE user_orgs (
   PRIMARY KEY (user_id, org_id)
 );
 
+-- Inbjudan till en organisation.
+--
+-- Medvetet enkel och medvetet tillfällig. När inloggningen går mot kommunens
+-- katalogtjänst blir inbjudan en fråga om att koppla en grupp, inte om att
+-- skapa konton, och då försvinner tabellen.
+CREATE TABLE invitations (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  org_id        INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  epost         TEXT    NOT NULL,
+  roll          TEXT    NOT NULL,
+  unit_id       INTEGER REFERENCES units(id) ON DELETE SET NULL,
+  -- Själva koden lagras aldrig, bara hashen av den. Den som läser databasen
+  -- ska inte kunna ta över en obesvarad inbjudan.
+  token_hash    TEXT    NOT NULL,
+  token_salt    TEXT    NOT NULL,
+  skapad        TEXT    NOT NULL,
+  gar_ut        TEXT    NOT NULL,
+  inbjuden_av   TEXT    NOT NULL,
+  accepterad    TEXT,
+  -- En obesvarad inbjudan per adress och organisation. Samma person kan bjudas
+  -- in till flera organisationer.
+  UNIQUE (org_id, epost)
+);
+
+CREATE INDEX idx_invitations_org ON invitations(org_id, accepterad);
+
 -- Sessioner lagras i databasen i stället för enbart i en cookie, så att en
 -- session kan återkallas och så att aktiva inloggningar går att granska.
 CREATE TABLE sessions (

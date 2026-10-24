@@ -15,10 +15,16 @@ const DEMOKONTON = [
   ["Systemadministratör", "jens.akerlund@angsholm.se", "drift2026", "Ängsholm · allt, inklusive behörigheter"],
   ["Beredskapssamordnare", "tove.bergqvist@nordmark.se", "nordmark2026", "Nordmark · ser inga andra kommuner"],
   ["Beredskapssamordnare", "johan.stenmark@vreta.se", "vreta2026", "Vreta · nyansluten kommun, nästan tom"],
-  ["Driftansvarig hos leverantören", "elsa.wikner@beredskapsnavet.se", "leverantor2026", "Tre kommuner, olika roll i varje"],
+  ["Beredskapssamordnare, region", "helena.krantz@regionvastmark.se", "vastmark2026", "Region Västmark · andra lagkrav än en kommun"],
+  ["Driftansvarig hos leverantören", "elsa.wikner@beredskapsnavet.se", "leverantor2026", "Alla fyra · registret och kravkatalogen"],
 ];
 
-export default async function Inloggningssida() {
+export default async function Inloggningssida({
+  searchParams,
+}: {
+  searchParams: Promise<{ valkommen?: string }>;
+}) {
+  const { valkommen } = await searchParams;
   const anvandare = await hamtaAnvandare();
   if (anvandare) redirect(startsida(anvandare.roll));
   const organisationer = hamtaOrganisationer();
@@ -55,6 +61,17 @@ export default async function Inloggningssida() {
         </div>
 
         <div className="lg:col-span-3 space-y-4">
+          {/* Besked till den som just besvarat en inbjudan. Länken är förbrukad
+              i det läget, så bekräftelsen hör hemma här och inte där. */}
+          {valkommen && (
+            <div role="status" className="kort p-4 border-l-4 border-ok-solid">
+              <p className="text-sm text-slate-800 leading-relaxed">
+                <span className="font-medium">Kontot är klart.</span> Du har nu behörighet till{" "}
+                {valkommen}. Logga in med din e-postadress och det lösenord du valde.
+              </p>
+            </div>
+          )}
+
           <div className="kort p-6">
             <h1 className="text-lg font-semibold text-slate-900 mb-4">Logga in</h1>
             <InloggningsFormular />
