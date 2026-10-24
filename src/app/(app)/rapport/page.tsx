@@ -199,7 +199,11 @@ export default async function Rapportsida() {
                   <td className="num text-slate-700">{b.placerade}</td>
                   <td className="num text-slate-600">{b.foreslagna}</td>
                   <td>
-                    <Matare del={b.placerade} helhet={b.platser} />
+                    <Matare
+                      del={b.placerade}
+                      helhet={b.platser}
+                      etikett={`Bemanningsgrad för ${b.namn}`}
+                    />
                   </td>
                 </tr>
               ))}
@@ -209,7 +213,11 @@ export default async function Rapportsida() {
                 <td className="num">{o.placerade}</td>
                 <td className="num">{o.foreslagna}</td>
                 <td>
-                  <Matare del={o.placerade} helhet={o.platser} />
+                  <Matare
+                    del={o.placerade}
+                    helhet={o.platser}
+                    etikett="Bemanningsgrad för hela krigsorganisationen"
+                  />
                 </td>
               </tr>
             </tbody>

@@ -188,7 +188,7 @@ export default async function Kontinuitetssida() {
                     {t.hogSarbarhet > 0 ? (
                       <span className="text-allv-text font-medium">{t.hogSarbarhet}</span>
                     ) : (
-                      <span className="text-slate-400">0</span>
+                      <span className="text-slate-600">0</span>
                     )}
                   </td>
                   <td className="num text-slate-500">{t.antal}</td>
@@ -239,6 +239,7 @@ export default async function Kontinuitetssida() {
                           del={b.sarbarhet}
                           helhet={5}
                           visaText={false}
+                          etikett={`Sårbarhet för beroendet ${b.beskrivning}`}
                           ton={b.sarbarhet >= 4 ? "allvarlig" : b.sarbarhet >= 3 ? "varning" : "ok"}
                         />
                         <div className="text-[11px] text-slate-500 mt-0.5">

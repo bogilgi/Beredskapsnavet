@@ -211,7 +211,7 @@ export default async function Katalogsida({
               <tr key={k.id}>
                 <td>
                   <span className="font-mono text-xs font-medium text-brand-700">{k.kod}</span>
-                  <span className="block text-[11px] text-slate-400">v{k.katalogversion}</span>
+                  <span className="block text-[11px] text-slate-600">v{k.katalogversion}</span>
                 </td>
                 <td className="max-w-xl">
                   <div className="font-medium text-slate-900">{k.rubrik}</div>

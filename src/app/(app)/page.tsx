@@ -251,7 +251,11 @@ export default async function Oversiktssida() {
                       </td>
                       <td className="num text-slate-600">{b.platser}</td>
                       <td>
-                        <Matare del={b.placerade} helhet={b.platser} />
+                        <Matare
+                          del={b.placerade}
+                          helhet={b.platser}
+                          etikett={`Bemanningsgrad för ${b.namn}`}
+                        />
                         {b.foreslagna > 0 && (
                           <div className="text-[11px] text-varn-text mt-0.5">
                             +{b.foreslagna} föreslagna
@@ -421,7 +425,7 @@ export default async function Oversiktssida() {
                 <p className="text-xs text-slate-500">{datumTid(l.tidpunkt)}</p>
                 <p className="text-sm text-slate-800 mt-0.5">{l.handelse}</p>
                 {l.objekt && <p className="text-xs text-slate-600">{l.objekt}</p>}
-                <p className="text-[11px] text-slate-400 mt-0.5">{l.anvandare}</p>
+                <p className="text-[11px] text-slate-600 mt-0.5">{l.anvandare}</p>
               </li>
             ))}
           </ul>

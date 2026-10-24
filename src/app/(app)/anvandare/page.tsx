@@ -79,7 +79,7 @@ export default async function Anvandarsida() {
                 <td>
                   <div className="font-medium text-slate-900">{a.namn}</div>
                   <div className="text-xs text-slate-500">{a.epost}</div>
-                  <div className="text-[11px] text-slate-400">Upplagd {datum(a.skapad)}</div>
+                  <div className="text-[11px] text-slate-600">Upplagd {datum(a.skapad)}</div>
                 </td>
                 <td className="text-xs text-slate-600">{a.kortnamn ?? "–"}</td>
                 <td>
@@ -106,7 +106,7 @@ export default async function Anvandarsida() {
                   {a.aktiva_sessioner > 0 ? (
                     <Pill ton="info">{a.aktiva_sessioner} aktiva</Pill>
                   ) : (
-                    <span className="text-xs text-slate-400">Ingen</span>
+                    <span className="text-xs text-slate-600">Ingen</span>
                   )}
                 </td>
                 <td>

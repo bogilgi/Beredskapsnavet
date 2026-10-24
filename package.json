@@ -10,7 +10,8 @@
     "db:reset": "node --experimental-sqlite scripts/seed.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsc -p tsconfig.test.json && node --experimental-sqlite --test \"tests/*.test.mjs\"",
-    "test:watch": "node --experimental-sqlite --test --watch \"tests/*.test.mjs\""
+    "test:watch": "node --experimental-sqlite --test --watch \"tests/*.test.mjs\"",
+    "tillganglighet": "node scripts/tillganglighet.mjs"
   },
   "dependencies": {
     "next": "15.5.4",

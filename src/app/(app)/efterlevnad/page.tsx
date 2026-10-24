@@ -203,7 +203,7 @@ export default async function Efterlevnadssida() {
         </table>
       </Panel>
 
-      <p className="mt-4 text-xs text-slate-500 max-w-3xl leading-relaxed">
+      <p className="mt-4 text-xs text-slate-600 max-w-3xl leading-relaxed">
         <Pill ton="info">Observera</Pill> Kravtexten kommer ur den gemensamma katalogen, som
         underhålls centralt och är densamma för alla anslutna {org.typ === "region" ? "regioner" : "kommuner"}.
         Varje rad bär källhänvisning och uppgift om när den senast stämdes av mot författningstext.

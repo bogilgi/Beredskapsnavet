@@ -184,7 +184,7 @@ export default async function Ovningssida() {
             </table>
           </Panel>
 
-          <p className="text-xs text-slate-500 leading-relaxed px-1">
+          <p className="text-xs text-slate-600 leading-relaxed px-1">
             Dagens datum i systemet: {idag()}.
           </p>
         </div>

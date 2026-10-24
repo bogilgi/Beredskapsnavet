@@ -206,7 +206,7 @@ export default async function Krigsplaceringssida() {
                     )}
                     {p.sakerhetsklass === "ingen" &&
                       p.fm_krigsplacerad === 0 &&
-                      !p.annan_plikt && <span className="text-slate-400">–</span>}
+                      !p.annan_plikt && <span className="text-slate-600">–</span>}
                   </td>
                   <td className="text-xs text-slate-600">
                     {p.beslutsdatum ? datum(p.beslutsdatum) : "–"}

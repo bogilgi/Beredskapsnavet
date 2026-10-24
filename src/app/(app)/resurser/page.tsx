@@ -118,7 +118,7 @@ export default async function Resurssida() {
                       <td className="text-xs text-slate-600">{r.kapacitet || "–"}</td>
                       <td className="text-xs text-slate-600">
                         <div>{r.placering}</div>
-                        {r.kortnamn && <div className="text-slate-400">{r.kortnamn}</div>}
+                        {r.kortnamn && <div className="text-slate-600">{r.kortnamn}</div>}
                       </td>
                       <td className="text-xs text-slate-700">{r.ansvarig}</td>
                       <td className="text-xs">
@@ -162,7 +162,7 @@ export default async function Resurssida() {
         ))}
       </div>
 
-      <p className="mt-4 text-xs text-slate-500 max-w-3xl leading-relaxed">
+      <p className="mt-4 text-xs text-slate-600 max-w-3xl leading-relaxed">
         Registrerad kontroll sätter dagens datum som senaste kontroll och nästa kontroll om 90
         dagar. Intervallet är i skarp drift inställbart per resurstyp.
       </p>

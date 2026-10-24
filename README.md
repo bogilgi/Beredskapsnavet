@@ -93,6 +93,37 @@ Sviten är muterad för att kontrollera att den faktiskt fångar fel: tas
 huvudmannatypningen bort faller tre tester, och öppnas krigsplaceringen för
 förvaltningschefen faller ett.
 
+## Tillgänglighet
+
+Lagen om tillgänglighet till digital offentlig service kräver WCAG 2.1 nivå AA
+av offentliga aktörers digitala tjänster, och i en kommunupphandling är det
+normalt ett skallkrav.
+
+```bash
+npm run demo              # i en terminal
+npm run tillganglighet    # i en annan
+```
+
+Samtliga 16 sidor granskas maskinellt mot WCAG 2.1 A och AA med axe-core,
+inloggade som en roll som når alla moduler. Granskningen rapporterar noll
+maskinellt upptäckbara överträdelser. Playwright och axe-core är med avsikt
+inte beroenden i projektet — de behövs bara här och ska inte följa med in i
+driften; skriptet säger hur de installeras.
+
+Granskningen hittade tre allvarliga fel, som är rättade: 46 andelsmätare utan
+tillgängligt namn, 51 fall av text med kontrast 2,63:1 mot kravets 4,5:1, och
+rullbara tabellområden som inte gick att nå med tangentbord. Mätarens `etikett`
+är numera **obligatorisk i typen**, så att typkontrollen stoppar ett anrop som
+saknar den — ett maskinellt test hittar ett sådant fel först i efterhand.
+
+**Att noll fel rapporteras är ett golv, inte ett intyg.** Ett maskinellt verktyg
+hittar en del av WCAG. Granskning med skärmläsare, hela tangentbordsvägen,
+förstoring till 200 procent och begriplighet återstår och kräver en människa.
+Vad som är prövat och vad som inte är det står i
+[`docs/tillganglighet.md`](docs/tillganglighet.md), som är underlag till
+kommunens egen tillgänglighetsredogörelse — den skyldigheten är kommunens, inte
+leverantörens.
+
 ## Vad produkten löser
 
 Varje kommun har samma lagstadgade uppgifter: risk- och sårbarhetsanalys,
@@ -149,6 +180,8 @@ segmentet.
 db/schema.sql          Datamodell, inkl. delad kravkatalog och status per org
 scripts/data/          Nationellt organisationsregister, vendorat med proveniens
 scripts/demo.mjs       Startar hela demon och skriver ut körordningen
+scripts/tillganglighet.mjs  WCAG-granskning med axe-core
+docs/tillganglighet.md      Underlag till kommunens tillgänglighetsredogörelse
 src/lib/katalog-actions.ts  Redaktionen: ändring, avstämning och nya krav
 src/lib/formsvar.ts    Serveråtgärder som svarar med text i stället för att krascha
 src/lib/inbjudan*.ts   Inbjudan av användare, med engångskod och hashad token

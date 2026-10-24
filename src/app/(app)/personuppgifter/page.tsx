@@ -222,7 +222,7 @@ export default async function Personuppgiftssida() {
                         Säkerhetsklass {p.sakerhetsklass}, kontroll: {p.registerkontroll}
                       </span>
                     ) : (
-                      <span className="text-slate-400">–</span>
+                      <span className="text-slate-600">–</span>
                     )}
                   </td>
                   {skriv && (

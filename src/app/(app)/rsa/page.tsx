@@ -218,7 +218,7 @@ export default async function RsaSida() {
                 <td className="text-xs text-slate-600">{RISKKATEGORI[r.kategori]}</td>
                 <td className="text-xs text-slate-600">
                   <div>{r.agare}</div>
-                  {r.kortnamn && <div className="text-slate-400">{r.kortnamn}</div>}
+                  {r.kortnamn && <div className="text-slate-600">{r.kortnamn}</div>}
                 </td>
                 <td>
                   <Pill ton={riskTon(r.sannolikhet, r.konsekvens)}>
