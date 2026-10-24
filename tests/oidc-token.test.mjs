@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createSign, generateKeyPairSync } from "node:crypto";
 import {
-  ALGORITM, FelAutentiseringsmetod, delaToken, kontrolleraKrav, verifieraSignatur,
+  ALGORITM, FelAutentiseringsmetod, delaToken, domanTillaten, kontrolleraKrav,
+  verifieraSignatur,
 } from "../.test-build/oidc-token.js";
 
 /**
@@ -26,7 +27,7 @@ function token(krav = {}, huvud = {}, nyckel = privateKey) {
   const h = b64({ alg: "RS256", typ: "JWT", kid: KID, ...huvud });
   const k = b64({
     iss: ISSUER, aud: KLIENT, exp: NU + 600, iat: NU, nonce: NONCE,
-    email: "a@example.se", ...krav,
+    sub: "abc-123", email: "a@example.se", ...krav,
   });
   if (huvud.alg === "none") return `${h}.${k}.`;
   const sig = createSign(ALGORITM[huvud.alg ?? "RS256"] ?? "RSA-SHA256")
@@ -137,4 +138,60 @@ test("utan krav på metod spelar amr ingen roll", () => {
 
 test("bara asymmetriska algoritmer finns i tabellen", () => {
   assert.deepEqual(Object.keys(ALGORITM).sort(), ["RS256", "RS384", "RS512"]);
+});
+
+/* ------------------------------------------------------------------- sub */
+
+test("en token utan sub avvisas", () => {
+  // sub är utfärdarens stabila identifierare och det kontot binds till. Utan
+  // den finns bara e-postadressen, och en adress kan skrivas om i en
+  // katalogtjänst och ges till någon annan.
+  assert.throws(() => godkann(token({ sub: undefined })), /saknar sub/);
+  assert.throws(() => godkann(token({ sub: "" })), /saknar sub/);
+  assert.throws(() => godkann(token({ sub: "   " })), /saknar sub/);
+  assert.throws(() => godkann(token({ sub: 17 })), /saknar sub/);
+});
+
+/* ------------------------------------------------------------ e-postdomäner */
+
+/**
+ * Domänspärren är gränsen för vad en utfärdare har något att säga om.
+ *
+ * Varje organisation konfigurerar sin egen utfärdare. Utan spärren kan var och
+ * en av dem intyga vilken adress som helst i installationen, och en kommuns
+ * IT-avdelning hade kunnat logga in som leverantörens driftpersonal.
+ */
+test("adresser i den konfigurerade domänen släpps igenom", () => {
+  assert.equal(domanTillaten("tove@nordmark.se", "nordmark.se"), true);
+  assert.equal(domanTillaten("Tove@Nordmark.SE", "nordmark.se"), true);
+  assert.equal(domanTillaten("tove@nordmark.se", " nordmark.se , annan.se "), true);
+  assert.equal(domanTillaten("a@b.annan.se", "annan.se"), true, "underdomän");
+});
+
+test("adresser utanför domänen nekas", () => {
+  assert.equal(domanTillaten("elsa@beredskapsnavet.se", "nordmark.se"), false);
+  // Suffixjämförelsen måste gå mot "." + domänen. Annars släpps en domän som
+  // bara slutar på rätt bokstäver igenom, och den går att registrera.
+  assert.equal(domanTillaten("angripare@ondnordmark.se", "nordmark.se"), false);
+  assert.equal(domanTillaten("angripare@nordmark.se.ond.example", "nordmark.se"), false);
+});
+
+test("en tom konfiguration tillåter ingenting", () => {
+  // Att låta tomt betyda "alla domäner" vore hålet igen, och ett hål man
+  // lämnar öppet genom att inte fylla i ett fält.
+  for (const domaner of ["", "   ", ",", " , "]) {
+    assert.equal(
+      domanTillaten("tove@nordmark.se", domaner), false,
+      `tom konfiguration (${JSON.stringify(domaner)}) släppte igenom en adress`,
+    );
+  }
+});
+
+test("adresser som inte är adresser nekas", () => {
+  for (const epost of ["", "nordmark.se", "a@", "@nordmark.se", "a@b@nordmark.se"]) {
+    assert.equal(
+      domanTillaten(epost, "nordmark.se"), false,
+      `${JSON.stringify(epost)} godkändes som adress`,
+    );
+  }
 });

@@ -392,6 +392,18 @@ CREATE TABLE org_idp (
   -- Krävd autentiseringsmetod i amr-anspråket, t.ex. "mfa". Tom = inget krav.
   -- Flerfaktor ska verifieras mot vad utfärdaren FAKTISKT gjorde, inte antas.
   krav_amr        TEXT    NOT NULL DEFAULT '',
+  -- Vilka e-postdomäner utfärdaren får intyga, kommaseparerat, t.ex.
+  -- "nordmark.se,nordmark.kommun.se".
+  --
+  -- Utan den här spärren kan VARJE konfigurerad utfärdare intyga VARJE adress
+  -- i installationen: kontot slås upp på adressen, och adressen kommer ur den
+  -- token utfärdaren själv skrivit. En kommuns IT-avdelning hade därmed kunnat
+  -- logga in som leverantörens driftpersonal. Domänen är den gräns som säger
+  -- vilka identiteter utfärdaren har något att säga om.
+  --
+  -- Tom = ingen federerad inloggning tillåts. Standardvärdet nekar med flit:
+  -- ett tomt fält som betydde "alla domäner" vore samma hål igen.
+  epost_domaner   TEXT    NOT NULL DEFAULT '',
   -- Med 0 nekas inloggning för den som saknar medlemskap. Med 1 skapas
   -- medlemskapet automatiskt med rollen nedan.
   auto_medlemskap INTEGER NOT NULL DEFAULT 0,
@@ -404,6 +416,28 @@ CREATE TABLE org_idp (
 -- state och nonce måste lagras på servern mellan utresan och återkomsten, så
 -- att svaret från utfärdaren går att binda till just den här begäran. Utan det
 -- går inloggningen att starta från en annan flik.
+/*
+ * Federerade identiteter: vilket konto en utfärdares sub svarar mot.
+ *
+ * Nyckeln är utfärdarens sub och inte e-postadressen. En adress kan skrivas
+ * om i en katalogtjänst och ges till en annan person; sub är per definition
+ * stabil och unik hos utfärdaren. Slogs kontot bara upp på adressen vid varje
+ * inloggning skulle en omskriven adress tysta ge åtkomst till fel konto.
+ *
+ * Bindningen skapas vid den första federerade inloggningen, när adressen ännu
+ * är det enda som finns att gå på, och gäller därefter.
+ */
+CREATE TABLE federated_identities (
+  issuer   TEXT    NOT NULL,
+  sub      TEXT    NOT NULL,
+  user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  org_id   INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  -- Adressen vid bindningen. Bara för spårbarhet: den är inte nyckeln.
+  epost    TEXT    NOT NULL,
+  skapad   TEXT    NOT NULL,
+  PRIMARY KEY (issuer, sub)
+);
+
 CREATE TABLE oidc_requests (
   state           TEXT    PRIMARY KEY,
   org_id          INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
@@ -483,3 +517,4 @@ CREATE INDEX idx_placements_person ON placements(person_id);
 CREATE INDEX idx_dependencies_fn   ON dependencies(function_id);
 CREATE INDEX idx_actions_status    ON actions(status);
 CREATE INDEX idx_actions_forfallo  ON actions(forfallodatum);
+CREATE INDEX idx_federated_user    ON federated_identities(user_id);

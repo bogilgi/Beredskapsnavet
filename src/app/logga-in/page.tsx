@@ -53,6 +53,12 @@ const FELTEXT: Record<string, string> = {
   "epost-ej-verifierad":
     "Katalogtjänsten har inte verifierat e-postadressen, och den kan därför inte användas som identitet.",
   "saknar-epost": "Katalogtjänsten lämnade ingen e-postadress. Kontakta kommunens IT-avdelning.",
+  "doman-ej-tillaten":
+    "E-postadressen ligger utanför de domäner organisationens katalogtjänst får intyga. Det är inte dina uppgifter som är fel — kontakta kommunens IT-avdelning.",
+  "ofullstandig-federering":
+    "Den federerade inloggningen är inte färdigkonfigurerad: ingen e-postdomän är angiven för organisationens katalogtjänst. Kontakta leverantören.",
+  "leverantorskonto-federerat":
+    "Kontot tillhör leverantörens driftpersonal och kan inte logga in via en organisations katalogtjänst. Använd lösenordsinloggningen.",
   avaktiverat: "Kontot är avaktiverat.",
   "saknar-behorighet":
     "Du har ingen behörighet i organisationen. Be organisationens administratör bjuda in dig.",

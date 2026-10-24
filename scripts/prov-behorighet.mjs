@@ -252,6 +252,85 @@ notera(
   `${foreMedlem} före, ${efterMedlem} efter`,
 );
 
+/* ----------- 4. en organisations utfärdare kan inte intyga någon annans adress */
+
+/*
+ * Den federerade inloggningen slog upp kontot på e-postadressen i id-token,
+ * och adressen står i den token utfärdaren själv har skrivit. Varje
+ * organisation konfigurerar sin egen utfärdare, så var och en av dem kunde
+ * intyga vilken adress som helst i installationen.
+ *
+ * Flödet drivs med fetch och inte i webbläsaren, eftersom provet behöver
+ * ändra adressen i utfärdarens /authorize — det är den enda punkt där
+ * angriparen, som äger utfärdaren, gör något annat än en vanlig användare.
+ */
+const IDP = process.env.BEREDSKAP_IDP || "http://localhost:4011";
+try {
+  const svar = await fetch(`${IDP}/.well-known/openid-configuration`);
+  if (!svar.ok) throw new Error(String(svar.status));
+} catch {
+  console.error(
+    `\nTest-utfärdaren svarar inte på ${IDP}. Den startas av npm run demo,\n` +
+    "och utan den går den federerade delen av provet inte att köra.\n",
+  );
+  await webb.close();
+  db.close();
+  process.exit(2);
+}
+
+/** Går hela OIDC-flödet och svarar med var vi hamnade, och sessionskakan. */
+async function federeradInloggning(kortnamn, demoEpost) {
+  const start = await fetch(`${BAS}/api/auth/start?org=${kortnamn}`, { redirect: "manual" });
+  const authorize = start.headers.get("location");
+  if (!authorize) return { fel: "ingen omdirigering till utfärdaren" };
+
+  // Angriparen äger utfärdaren och bestämmer vad den intygar.
+  const url = new URL(authorize);
+  url.searchParams.set("demo_epost", demoEpost);
+  const svar = await fetch(url, { redirect: "manual" });
+  const tillbaka = svar.headers.get("location");
+  if (!tillbaka) return { fel: "utfärdaren skickade ingen kod" };
+
+  const callback = await fetch(new URL(tillbaka, BAS), { redirect: "manual" });
+  const slut = new URL(callback.headers.get("location") ?? "/", BAS);
+  return {
+    sokvag: slut.pathname,
+    felkod: slut.searchParams.get("fel"),
+    kaka: /beredskap[^=]*=/.test(callback.headers.get("set-cookie") ?? ""),
+  };
+}
+
+const MAL_FORE = en(
+  "SELECT COUNT(*) AS v FROM sessions WHERE user_id = ?", MAL_ID,
+).v;
+
+const angrepp = await federeradInloggning("nordmark", MAL);
+notera(
+  "Utfärdaren får inte intyga en adress utanför sin domän",
+  angrepp.felkod === "doman-ej-tillaten",
+  `hamnade på ${angrepp.sokvag}${angrepp.felkod ? "?fel=" + angrepp.felkod : ""}`,
+);
+notera(
+  "Ingen session skapas för det intygade kontot",
+  !angrepp.kaka && en("SELECT COUNT(*) AS v FROM sessions WHERE user_id = ?", MAL_ID).v === MAL_FORE,
+);
+
+// Och den riktiga inloggningen ska fortfarande fungera, annars är spärren
+// bredare än felet.
+const riktig = await federeradInloggning("nordmark", "tove.bergqvist@nordmark.se");
+notera(
+  "Den egna domänens användare loggar in federerat",
+  riktig.felkod === null && riktig.kaka,
+  `hamnade på ${riktig.sokvag}${riktig.felkod ? "?fel=" + riktig.felkod : ""}`,
+);
+notera(
+  "Kontot binds till utfärdarens sub, inte till adressen",
+  Boolean(en(
+    "SELECT sub FROM federated_identities WHERE user_id = ?",
+    userId("tove.bergqvist@nordmark.se"),
+  )),
+);
+
 await webb.close();
 db.close();
 

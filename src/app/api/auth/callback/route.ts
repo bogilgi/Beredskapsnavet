@@ -6,6 +6,7 @@ import {
   FelAutentiseringsmetod, forbrukaBegaran, hamtaDiscovery, hamtaIdp, vaxlaKod,
   verifieraIdToken,
 } from "@/lib/oidc";
+import { domanTillaten } from "@/lib/oidc-token";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export async function GET(begaran: NextRequest) {
 
   let epost: string;
   let namn: string;
+  let sub: string;
   try {
     const d = await hamtaDiscovery(idp.issuer);
     const idToken = await vaxlaKod(kod, begaranRad.code_verifier, idp, d, redirectUri);
@@ -44,6 +46,8 @@ export async function GET(begaran: NextRequest) {
 
     epost = String(krav.email ?? "").toLowerCase();
     namn = String(krav.name ?? "").trim() || epost;
+    // Kontrollerad i kontrolleraKrav: obligatorisk och icke-tom.
+    sub = String(krav.sub);
 
     // En e-postadress som utfärdaren inte intygat är verifierad duger inte som
     // identitet: den kan vara vad användaren själv skrivit in.
@@ -64,9 +68,46 @@ export async function GET(begaran: NextRequest) {
     return tillbaka(begaran, "verifiering");
   }
 
-  const anvandare = one<{ id: number; aktiv: number }>(
-    "SELECT id, aktiv FROM users WHERE epost = ?", epost,
+  /*
+   * Vilken identitet utfärdaren får intyga.
+   *
+   * Varje organisation konfigurerar sin egen utfärdare. Slås kontot bara upp
+   * på e-postadressen kan var och en av dem intyga vilken adress som helst i
+   * installationen — adressen står ju i den token utfärdaren själv skrivit.
+   * En kommuns IT-avdelning hade därmed kunnat logga in som leverantörens
+   * driftpersonal och nå den kravkatalog alla kunder delar.
+   *
+   * Domänen är gränsen för vad utfärdaren har något att säga om, och den
+   * kontrolleras före uppslagningen.
+   */
+  if (!domanTillaten(epost, idp.epost_domaner)) {
+    logga(
+      idp.org_id, epost, "Nekad federerad inloggning",
+      idp.epost_domaner
+        ? `Adressen ligger utanför ${idp.epost_domaner}`
+        : "Ingen e-postdomän är konfigurerad för utfärdaren",
+    );
+    return tillbaka(begaran, idp.epost_domaner ? "doman-ej-tillaten" : "ofullstandig-federering");
+  }
+
+  /*
+   * Identiteten är utfärdarens sub, inte adressen. En adress kan skrivas om i
+   * en katalogtjänst och ges till en annan person; sub är stabil. Bindningen
+   * skapas vid första inloggningen, när adressen är det enda som finns att gå
+   * på, och gäller därefter.
+   */
+  const bunden = one<{ user_id: number; epost: string }>(
+    "SELECT user_id, epost FROM federated_identities WHERE issuer = ? AND sub = ?",
+    idp.issuer, sub,
   );
+
+  const anvandare = bunden
+    ? one<{ id: number; aktiv: number; leverantor: number }>(
+        "SELECT id, aktiv, leverantor FROM users WHERE id = ?", bunden.user_id,
+      )
+    : one<{ id: number; aktiv: number; leverantor: number }>(
+        "SELECT id, aktiv, leverantor FROM users WHERE epost = ?", epost,
+      );
 
   let userId: number;
   if (anvandare) {
@@ -74,7 +115,23 @@ export async function GET(begaran: NextRequest) {
       logga(idp.org_id, epost, "Nekad federerad inloggning", "Kontot är avaktiverat");
       return tillbaka(begaran, "avaktiverat");
     }
+    // Leverantörskontot har behörighet utanför alla organisationer, och en
+    // organisations utfärdare ska inte kunna utfärda den. Domänspärren ovan
+    // räcker så länge den är rätt konfigurerad; den här gör det oberoende av
+    // konfigurationen.
+    if (anvandare.leverantor === 1) {
+      logga(
+        idp.org_id, epost, "Nekad federerad inloggning",
+        "Leverantörskonto kan inte logga in via en organisations utfärdare",
+      );
+      return tillbaka(begaran, "leverantorskonto-federerat");
+    }
     userId = anvandare.id;
+  } else if (bunden) {
+    // Bindningen finns men kontot är borta. Att falla tillbaka på adressen här
+    // vore att återinföra uppslagningen bindningen ska ersätta.
+    logga(idp.org_id, epost, "Nekad federerad inloggning", "Det bundna kontot finns inte kvar");
+    return tillbaka(begaran, "saknar-behorighet");
   } else if (idp.auto_medlemskap === 1) {
     // Kontot skapas utan lösenord: inloggningen sker mot katalogtjänsten, och
     // ett lösenordsfält som ingen använder är bara en angreppsyta.
@@ -106,6 +163,16 @@ export async function GET(begaran: NextRequest) {
 
   // Namnet hålls i takt med katalogtjänsten, som är källan efter federering.
   if (namn) run("UPDATE users SET namn = ? WHERE id = ?", namn, userId);
+
+  if (!bunden) {
+    run(
+      `INSERT INTO federated_identities (issuer, sub, user_id, org_id, epost, skapad)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      idp.issuer, sub, userId, idp.org_id, epost,
+      new Date().toISOString().slice(0, 19),
+    );
+    logga(idp.org_id, namn || epost, "Band konto till katalogtjänsten", idp.issuer);
+  }
 
   await skapaSession(userId, idp.org_id);
   const roll = medlem?.roll ?? idp.auto_roll;

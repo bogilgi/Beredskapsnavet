@@ -106,6 +106,13 @@ export function kontrolleraKrav(
   }
   if (krav.nonce !== nonce) throw new Error("Id-tokens nonce stämmer inte med begäran.");
 
+  // sub är utfärdarens stabila identifierare för användaren, och obligatorisk
+  // enligt OpenID Connect. Det är den identiteten kontot binds till — en
+  // e-postadress kan skrivas om i en katalogtjänst, sub kan inte.
+  if (typeof krav.sub !== "string" || krav.sub.trim() === "") {
+    throw new Error("Id-token saknar sub, och går därför inte att binda till ett konto.");
+  }
+
   // Flerfaktor ska verifieras mot vad utfärdaren faktiskt gjorde. Att anta att
   // kommunens katalogtjänst alltid kräver det vore att gissa om en säkerhet
   // systemet säljs på.
@@ -117,4 +124,36 @@ export function kontrolleraKrav(
       );
     }
   }
+}
+
+/* ------------------------------------------------------------ e-postdomäner */
+
+/**
+ * Om utfärdaren får intyga adressen.
+ *
+ * Varje organisation konfigurerar sin egen utfärdare, och utan den här
+ * kontrollen kan var och en av dem intyga vilken adress som helst i
+ * installationen: kontot slås upp på adressen, och adressen står i den token
+ * utfärdaren själv har skrivit. En kommuns IT-avdelning hade därmed kunnat
+ * logga in som leverantörens driftpersonal. Domänen säger vilka identiteter
+ * utfärdaren har något att säga om.
+ *
+ * En tom lista tillåter ingenting. Att låta den betyda "alla domäner" vore
+ * samma hål igen, och ett hål man råkar lämna öppet genom att inte fylla i
+ * ett fält.
+ */
+export function domanTillaten(epost: string, domaner: string): boolean {
+  const tillatna = domaner
+    .split(",")
+    .map((d) => d.trim().toLowerCase().replace(/^@/, ""))
+    .filter(Boolean);
+  if (tillatna.length === 0) return false;
+
+  const delar = epost.trim().toLowerCase().split("@");
+  if (delar.length !== 2 || !delar[0] || !delar[1]) return false;
+  const doman = delar[1];
+
+  // Exakt domän, eller en underdomän till en tillåten. Suffixjämförelsen görs
+  // mot "." + domänen, annars hade "ondnordmark.se" matchat "nordmark.se".
+  return tillatna.some((d) => doman === d || doman.endsWith("." + d));
 }

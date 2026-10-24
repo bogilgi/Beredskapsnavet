@@ -1890,6 +1890,10 @@ ins("org_idp", {
   knapptext: "Logga in med Nordmarks kommunkonto",
   // Flerfaktor krävs och kontrolleras mot amr i id-token, inte antas.
   krav_amr: "mfa",
+  // Vilka adresser utfärdaren får intyga. Utan den här gränsen kan varje
+  // konfigurerad utfärdare intyga varje adress i installationen, inklusive
+  // leverantörens egen. Tom betyder att ingen federerad inloggning tillåts.
+  epost_domaner: "nordmark.se",
   // Behörighet ges genom inbjudan, inte av att någon har ett konto i
   // katalogtjänsten. En kommunanställd ska inte automatiskt komma åt
   // krisberedskapssystemet.

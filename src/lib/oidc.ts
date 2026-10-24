@@ -27,6 +27,8 @@ export type Idp = {
   client_secret: string;
   knapptext: string;
   krav_amr: string;
+  /** Kommaseparerade e-postdomäner utfärdaren får intyga. Tom = ingen. */
+  epost_domaner: string;
   auto_medlemskap: number;
   auto_roll: string;
   aktiv: number;
