@@ -489,9 +489,11 @@ Demon är komplett som produktdemo men inte som driftsatt system. Det som
    Cybersäkerhetslagen (2025:1506) är kontrollerad och inlagd. Kommuner omfattas
    uttryckligen enligt 1 kap. 3 §, kommunfullmäktige är undantaget enligt 14 §,
    och en kommun som är större än medelstor är väsentlig verksamhetsutövare.
-   Demokommunens tillsynsmyndighet följer av cybersäkerhetsförordningen
-   (2025:1507) och är Länsstyrelsen i Örebro län. Den kopplingen mellan län och
-   tillsynsmyndighet behöver sättas per kund.
+   Tillsynsmyndigheten följer av cybersäkerhetsförordningen (2025:1507) och
+   sätts numera automatiskt ur det nationella registret, per län och
+   huvudmannatyp. Den kopplingen behöver alltså inte längre sättas per kund,
+   men den bygger på förordningens lydelse och måste ses över när den ändras —
+   SFS 2026:623 ändrade förordningen i maj 2026 och är inte genomgången.
 4. **Regionkraven behöver juridisk granskning.** Kraven `HSL-KATASTROF`,
    `HSL-UTLAND` och `OK-REGION` är avstämda mot källa, men `SMITTSKYDD` saknar
    verifierad paragrafhänvisning och är markerat som ej avstämt. Dessutom
