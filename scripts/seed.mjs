@@ -1818,6 +1818,26 @@ seedaStatus(VASTMARK, "region", "Helena Krantz", {
   "LKRB-INFOR": { status: "pagaende", ansvarig: "Helena Krantz", evidens: "Gapanalys mot prop. 2026/27:5 påbörjad" },
 });
 
+/* ----------------------------------------------- federerad inloggning */
+// Nordmark loggar in mot en katalogtjänst, de övriga med lokala lösenord. Det
+// speglar verkligheten under ett införande: federeringen kommer en kommun i
+// taget. Utfärdaren här är scripts/test-idp.mjs, som måste köras separat.
+ins("org_idp", {
+  org_id: NORDMARK,
+  issuer: "http://localhost:4011",
+  client_id: "beredskapsnavet-test",
+  client_secret: "test-hemlighet",
+  knapptext: "Logga in med Nordmarks kommunkonto",
+  // Flerfaktor krävs och kontrolleras mot amr i id-token, inte antas.
+  krav_amr: "mfa",
+  // Behörighet ges genom inbjudan, inte av att någon har ett konto i
+  // katalogtjänsten. En kommunanställd ska inte automatiskt komma åt
+  // krisberedskapssystemet.
+  auto_medlemskap: 0,
+  auto_roll: "kommunledning",
+  aktiv: true,
+});
+
 /* ------------------------------------------------- nycklar mot HR-systemet */
 // extern_id är anställningsnumret i kommunens personalsystem och det som en
 // import matchar på. Demodatan får syntetiska nummer per organisation, så att

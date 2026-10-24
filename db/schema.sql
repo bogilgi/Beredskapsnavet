@@ -351,6 +351,45 @@ CREATE TABLE invitations (
 
 CREATE INDEX idx_invitations_org ON invitations(org_id, accepterad);
 
+-- Federerad inloggning per organisation.
+--
+-- Varje kommun har sin egen katalogtjänst, så konfigurationen hör till
+-- organisationen och inte till installationen. Lokala lösenord finns kvar för
+-- de organisationer som inte konfigurerat någon leverantör, och för
+-- leverantörens egen driftpersonal.
+CREATE TABLE org_idp (
+  org_id          INTEGER PRIMARY KEY REFERENCES organisations(id) ON DELETE CASCADE,
+  -- Utfärdaren, t.ex. https://login.microsoftonline.com/<tenant>/v2.0.
+  -- Discovery-dokumentet hämtas från <issuer>/.well-known/openid-configuration.
+  issuer          TEXT    NOT NULL,
+  client_id       TEXT    NOT NULL,
+  client_secret   TEXT    NOT NULL,
+  -- Texten på knappen, t.ex. "Logga in med kommunens konto".
+  knapptext       TEXT    NOT NULL DEFAULT 'Logga in med organisationskonto',
+  -- Krävd autentiseringsmetod i amr-anspråket, t.ex. "mfa". Tom = inget krav.
+  -- Flerfaktor ska verifieras mot vad utfärdaren FAKTISKT gjorde, inte antas.
+  krav_amr        TEXT    NOT NULL DEFAULT '',
+  -- Med 0 nekas inloggning för den som saknar medlemskap. Med 1 skapas
+  -- medlemskapet automatiskt med rollen nedan.
+  auto_medlemskap INTEGER NOT NULL DEFAULT 0,
+  auto_roll       TEXT    NOT NULL DEFAULT 'kommunledning',
+  aktiv           INTEGER NOT NULL DEFAULT 1
+);
+
+-- Påbörjade inloggningar. En rad per klick på inloggningsknappen.
+--
+-- state och nonce måste lagras på servern mellan utresan och återkomsten, så
+-- att svaret från utfärdaren går att binda till just den här begäran. Utan det
+-- går inloggningen att starta från en annan flik.
+CREATE TABLE oidc_requests (
+  state           TEXT    PRIMARY KEY,
+  org_id          INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  nonce           TEXT    NOT NULL,
+  code_verifier   TEXT    NOT NULL,
+  skapad          TEXT    NOT NULL,
+  gar_ut          TEXT    NOT NULL
+);
+
 -- Sessioner lagras i databasen i stället för enbart i en cookie, så att en
 -- session kan återkallas och så att aktiva inloggningar går att granska.
 CREATE TABLE sessions (

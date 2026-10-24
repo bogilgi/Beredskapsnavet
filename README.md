@@ -91,6 +91,8 @@ src/lib/personuppgifter.ts  Registerförteckning enligt artikel 30
 src/lib/gallring-actions.ts Gallring, med spärr när fristen inte är beslutad
 src/lib/personalimport.ts   CSV-inläsning, med citerade fält och BOM
 src/lib/import-actions.ts   Import med torrkörning och allt-eller-inget
+src/lib/oidc.ts        Federerad inloggning: PKCE, JWKS och tokenvalidering
+scripts/test-idp.mjs   OIDC-utfärdare för utveckling. Aldrig i drift.
 scripts/seed.mjs       Demodata för Ängsholms kommun
 src/lib/db.ts          Anslutning, frågehjälpare, spårbarhetslogg
 src/lib/queries.ts     Alla läsningar och de automatiska kontrollerna
@@ -160,6 +162,58 @@ stämdes av och av vem. **En tom `kontrollerad` betyder att raden inte är avst�
 mot författningstext**, och raden visas då som *Ej avstämd mot källa* i
 gränssnittet och i CSV-exporten. Ett krav som ingen kontrollerat får inte se
 likadant ut som ett som är kontrollerat.
+
+## Federerad inloggning
+
+Inloggning mot organisationens katalogtjänst med **OpenID Connect**,
+auktoriseringskod och PKCE. Implicit flöde används inte: en id-token i
+adressfältet hamnar i webbserverloggar och i webbläsarhistoriken.
+
+Konfigurationen hör till organisationen och inte till installationen, eftersom
+varje kommun har sin egen katalogtjänst. Lokala lösenord finns kvar för de
+organisationer som inte konfigurerat någon leverantör — federeringen kommer en
+kommun i taget — och för leverantörens driftpersonal, som annars inte kan logga
+in någonstans. I demodatan är Nordmark federerad, de övriga inte.
+
+Det som kontrolleras i `src/lib/oidc.ts`:
+
+- **Signaturen**, mot utfärdarens JWKS. `none` och symmetriska algoritmer
+  avvisas — det är den klassiska vägen förbi signaturkontrollen.
+- **`iss`** mot den konfigurerade utfärdaren, och discovery-dokumentets egen
+  `issuer` mot adressen vi frågade.
+- **`aud`** mot vår klient, **`exp`** och **`iat`**.
+- **`nonce`** mot begäran, och **`state`** mot en rad som tas bort vid
+  läsningen. Samma svar går därför inte att spela upp igen.
+- **`amr`**, när organisationen kräver en viss metod. Flerfaktor verifieras mot
+  vad utfärdaren faktiskt gjorde i stället för att antas — det är en säkerhet
+  systemet säljs på.
+- **`email_verified`**. En adress utfärdaren inte intygat duger inte som
+  identitet; den kan vara vad användaren själv skrivit in.
+
+Behörighet ges genom inbjudan, inte av att någon har ett konto i
+katalogtjänsten: en kommunanställd ska inte automatiskt komma åt
+krisberedskapssystemet. `auto_medlemskap` finns för den kund som vill ha det
+andra beteendet, men är av som standard.
+
+Felbeskeden skiljer på vad användaren kan göra något åt och vad hen inte kan
+det. Att svara "fel uppgifter" när katalogtjänsten är nere skickar folk till
+lösenordsåterställning i onödan, och "kunde inte verifieras" när andrafaktorn
+saknas säger inte att den saknas.
+
+### Prova utan katalogtjänst
+
+`scripts/test-idp.mjs` är en riktig OIDC-utfärdare i miniatyr: den signerar
+id-tokens med RS256, publicerar JWKS och kontrollerar PKCE. Den finns för att
+federeringen ska gå att prova och felsöka utan tillgång till en skarp
+katalogtjänst, och **ska aldrig köras i drift** — den godkänner vem som helst.
+
+```bash
+node scripts/test-idp.mjs   # http://localhost:4011
+npm run dev                 # knappen dyker upp för Nordmark
+```
+
+Svaret styrs med parametrar till `/authorize`, för att kunna provocera fram
+fel: `demo_epost`, `demo_amr` och `demo_overifierad`.
 
 ## Import av personal
 
@@ -402,11 +456,10 @@ kommunledning i Ängsholm, så administrationsmodulen försvinner när hon byter
 Demon är komplett som produktdemo men inte som driftsatt system. Följande
 saknas medvetet:
 
-1. **Federerad inloggning.** Behörighetsmodellen är på plats, men lösenorden är
-   lokala. Skarp drift behöver inloggning mot kommunens katalogtjänst med
-   flerfaktorsautentisering. Roller och behörighetsmatris kan vara kvar som de är.
-   Lösenordsbyte, kontoskapande och återställning saknas helt, eftersom de
-   funktionerna försvinner med federerad inloggning.
+1. **Lösenordsåterställning för icke-federerade konton.** Federerad inloggning
+   finns, och med den försvinner lösenorden för de kommuner som konfigurerat en
+   katalogtjänst. Kvar står de som inte gjort det, och leverantörens
+   driftpersonal. För dem saknas återställning: i dag krävs en ny inbjudan.
 2. **Personuppgiftshantering: beslut återstår, inte funktion.** Rättslig grund
    är dokumenterad och gallringsrutinen finns, men fristerna måste beslutas av
    varje kommuns arkivmyndighet, och förteckningen granskas av

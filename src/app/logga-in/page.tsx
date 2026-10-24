@@ -3,6 +3,7 @@ import { InloggningsFormular } from "@/components/inloggning";
 import { hamtaAnvandare } from "@/lib/session";
 import { startsida } from "@/lib/behorighet";
 import { hamtaOrganisationer } from "@/lib/queries";
+import { hamtaIdpVal } from "@/lib/oidc";
 
 export const dynamic = "force-dynamic";
 
@@ -19,15 +20,44 @@ const DEMOKONTON = [
   ["Driftansvarig hos leverantören", "elsa.wikner@beredskapsnavet.se", "leverantor2026", "Alla fyra · registret och kravkatalogen"],
 ];
 
+/**
+ * Besked vid misslyckad federerad inloggning.
+ *
+ * Texterna skiljer på vad användaren kan göra något åt och vad hen inte kan
+ * det. Att svara "fel uppgifter" när utfärdaren är nere skickar folk till
+ * lösenordsåterställning i onödan.
+ */
+const FELTEXT: Record<string, string> = {
+  avbruten: "Inloggningen avbröts.",
+  "okand-organisation": "Organisationen har ingen federerad inloggning konfigurerad.",
+  utfardare:
+    "Organisationens katalogtjänst gick inte att nå. Det är inte dina uppgifter som är fel — försök igen om en stund, eller kontakta kommunens IT-avdelning.",
+  "ofullstandigt-svar": "Svaret från katalogtjänsten var ofullständigt. Försök igen.",
+  "utgangen-begaran":
+    "Inloggningen tog för lång tid eller påbörjades i en annan flik. Börja om härifrån.",
+  "kraver-mfa":
+    "Organisationen kräver flerfaktorsautentisering. Logga in på nytt och genomför andrafaktorn — ett lösenord räcker inte här.",
+  verifiering:
+    "Svaret från katalogtjänsten kunde inte verifieras. Inloggningen har därför nekats.",
+  "epost-ej-verifierad":
+    "Katalogtjänsten har inte verifierat e-postadressen, och den kan därför inte användas som identitet.",
+  "saknar-epost": "Katalogtjänsten lämnade ingen e-postadress. Kontakta kommunens IT-avdelning.",
+  avaktiverat: "Kontot är avaktiverat.",
+  "saknar-behorighet":
+    "Du har ingen behörighet i organisationen. Be organisationens administratör bjuda in dig.",
+  okant: "Inloggningen gick inte att genomföra.",
+};
+
 export default async function Inloggningssida({
   searchParams,
 }: {
-  searchParams: Promise<{ valkommen?: string }>;
+  searchParams: Promise<{ valkommen?: string; fel?: string }>;
 }) {
-  const { valkommen } = await searchParams;
+  const { valkommen, fel } = await searchParams;
   const anvandare = await hamtaAnvandare();
   if (anvandare) redirect(startsida(anvandare.roll));
   const organisationer = hamtaOrganisationer();
+  const federerade = hamtaIdpVal();
 
   return (
     <div className="min-h-screen bg-brand-800 flex items-center justify-center p-6">
@@ -72,8 +102,35 @@ export default async function Inloggningssida({
             </div>
           )}
 
+          {fel && (
+            <div role="alert" className="kort p-4 border-l-4 border-allv-solid">
+              <p className="text-sm text-slate-800 leading-relaxed">{FELTEXT[fel] ?? FELTEXT.okant}</p>
+            </div>
+          )}
+
           <div className="kort p-6">
             <h1 className="text-lg font-semibold text-slate-900 mb-4">Logga in</h1>
+
+            {federerade.length > 0 && (
+              <div className="mb-5 pb-5 border-b border-slate-200">
+                <div className="space-y-2">
+                  {federerade.map((f) => (
+                    <a
+                      key={f.kortnamn}
+                      href={`/api/auth/start?org=${encodeURIComponent(f.kortnamn)}`}
+                      className="knapp-primar block text-center"
+                    >
+                      {f.knapptext}
+                    </a>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-slate-500 leading-relaxed">
+                  Inloggningen sker mot organisationens katalogtjänst. Lösenordet lämnar aldrig
+                  den, och flerfaktor hanteras där.
+                </p>
+              </div>
+            )}
+
             <InloggningsFormular />
           </div>
 
