@@ -11,6 +11,7 @@ import {
   farSkriva, type Modul, type Roll,
 } from "@/lib/behorighet";
 import { datum, datumTid } from "@/lib/format";
+import { hinderForAterstallning } from "@/lib/aterstallningsregel";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,21 @@ export default async function Anvandarsida() {
 
   const aktiva = lista.filter((a) => a.aktiv === 1);
   const inloggade = lista.filter((a) => a.aktiva_sessioner > 0);
+
+  // Vilka konton som går att återställa härifrån. Samma regel som
+  // begarAterstallning nekar ur, så att sidan inte erbjuder det servern vägrar.
+  // antal_organisationer räknar alla medlemskap, regeln vill ha de övriga.
+  const sparr = (a: (typeof lista)[number]) =>
+    hinderForAterstallning(anvandare, {
+      leverantor: a.leverantor,
+      andra_organisationer: a.antal_organisationer - 1,
+      utan_losenord: a.utan_losenord,
+    });
+  const aterstallbara = aktiva.filter((a) => sparr(a) === null);
+  const ejAterstallbara = aktiva.flatMap((a) => {
+    const hinder = sparr(a);
+    return hinder === null ? [] : [{ a, skal: hinder.kort }];
+  });
 
   return (
     <>
@@ -205,16 +221,35 @@ export default async function Anvandarsida() {
                 <option value="" disabled>
                   Välj en användare
                 </option>
-                {lista
-                  .filter((a) => a.aktiv === 1)
-                  .map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.namn} — {a.epost}
-                    </option>
-                  ))}
+                {aterstallbara.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.namn} — {a.epost}
+                  </option>
+                ))}
               </select>
             </label>
           </Formular>
+
+          {ejAterstallbara.length > 0 && (
+            <div className="mt-4 text-sm text-slate-600 leading-relaxed">
+              <p className="font-medium text-slate-700">
+                Dessa konton återställs inte härifrån
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {ejAterstallbara.map(({ a, skal }) => (
+                  <li key={a.id}>
+                    {a.namn} — {a.epost} · <span className="text-slate-500">{skal}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-slate-500">
+                Ett nytt lösenord gäller kontot, inte medlemskapet, och når därför allt
+                kontot når. Ligger något av det utanför din organisation görs
+                återställningen av leverantören — eller, för konton som loggar in mot
+                katalogtjänsten, i katalogtjänsten.
+              </p>
+            </div>
+          )}
         </Panel>
       )}
 

@@ -620,6 +620,7 @@ export type AnvandarRad = {
   id: number; namn: string; epost: string; roll: string; unit_id: number | null;
   kortnamn: string | null; aktiv: number; senaste_inloggning: string | null;
   skapad: string; aktiva_sessioner: number; antal_organisationer: number;
+  leverantor: number; utan_losenord: number;
 };
 
 export type Inbjudan = {
@@ -644,7 +645,9 @@ export const hamtaInbjudningar = (orgId: number) =>
 export const hamtaAnvandarlista = (orgId: number) =>
   all<AnvandarRad>(`
     SELECT u.id, u.namn, u.epost, uo.roll, uo.unit_id, u.aktiv, u.senaste_inloggning,
-           u.skapad, un.kortnamn,
+           u.skapad, un.kortnamn, u.leverantor,
+      -- Tomt lösenordsfält betyder att kontot loggar in mot katalogtjänsten.
+      CASE WHEN u.losenord_hash = '' THEN 1 ELSE 0 END AS utan_losenord,
       (SELECT COUNT(*) FROM sessions s
         WHERE s.user_id = u.id AND s.org_id = uo.org_id AND s.gar_ut > ?) AS aktiva_sessioner,
       (SELECT COUNT(*) FROM user_orgs x WHERE x.user_id = u.id) AS antal_organisationer

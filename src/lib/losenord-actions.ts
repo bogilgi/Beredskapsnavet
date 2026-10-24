@@ -8,6 +8,7 @@ import { aterkallaSessioner, hashaLosenord, kravSkriv, type Anvandare } from "@/
 import { hamtaAterstallning } from "@/lib/losenord";
 import { verifieraLosenord } from "@/lib/session";
 import { svara, type FormSvar } from "@/lib/formsvar";
+import { hinderForAterstallning } from "@/lib/aterstallningsregel";
 
 const GILTIG_I_TIMMAR = 24;
 const MINSTA_LOSENORD = 12;
@@ -22,13 +23,26 @@ async function begarInre(a: Anvandare, formData: FormData): Promise<string> {
   // Återställningen gäller en medlem i den egna organisationen. En
   // administratör i en kommun ska inte kunna återställa lösenordet för någon
   // i en annan.
-  const medlem = one<{ namn: string; epost: string; aktiv: number }>(
-    `SELECT u.namn, u.epost, u.aktiv FROM user_orgs uo JOIN users u ON u.id = uo.user_id
+  const medlem = one<{
+    namn: string; epost: string; aktiv: number; leverantor: number;
+    andra_organisationer: number; utan_losenord: number;
+  }>(
+    `SELECT u.namn, u.epost, u.aktiv, u.leverantor,
+       (SELECT COUNT(*) FROM user_orgs x WHERE x.user_id = u.id AND x.org_id <> uo.org_id)
+         AS andra_organisationer,
+       CASE WHEN u.losenord_hash = '' THEN 1 ELSE 0 END AS utan_losenord
+     FROM user_orgs uo JOIN users u ON u.id = uo.user_id
      WHERE uo.user_id = ? AND uo.org_id = ?`,
     userId, a.org_id,
   );
   if (!medlem) throw new Error("Användaren är inte medlem i din organisation.");
   if (medlem.aktiv !== 1) throw new Error("Kontot är avaktiverat och kan inte återställas.");
+
+  // Medlemskapet ovan visar att kontot finns HÄR. Det visar inte att det bara
+  // finns här, och det är skillnaden som avgör vem som får återställa.
+  // Regeln, och skälet till den, står i aterstallningsregel.ts.
+  const hinder = hinderForAterstallning(a, medlem);
+  if (hinder) throw new Error(`${medlem.epost} ${hinder.forklaring}`);
 
   // Tidigare obesvarade länkar slutar gälla, så att bara den senaste fungerar.
   run("DELETE FROM password_resets WHERE user_id = ? AND anvand IS NULL", userId);

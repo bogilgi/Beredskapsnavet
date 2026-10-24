@@ -21,6 +21,7 @@
     "src/lib/domain.ts",
     "src/lib/personuppgifter.ts",
     "src/lib/csv.ts",
-    "src/lib/oidc-token.ts"
+    "src/lib/oidc-token.ts",
+    "src/lib/aterstallningsregel.ts"
   ]
 }
