@@ -10,12 +10,20 @@
  * Behörighetsfel är undantaget. De leder till omdirigering och ska inte
  * besvaras med en text i formuläret.
  */
-export type FormSvar = { fel?: string; klart?: string };
+export type FormSvar = {
+  fel?: string;
+  klart?: string;
+  /** Rad för rad, när ett kort besked inte räcker — till exempel en importrapport. */
+  rader?: string[];
+};
 
 /** Kastat fel blir ett läsbart svar i stället för en krasch. */
-export async function svara(arbete: () => Promise<string | void>): Promise<FormSvar> {
+export async function svara(
+  arbete: () => Promise<string | FormSvar | void>,
+): Promise<FormSvar> {
   try {
     const klart = await arbete();
+    if (klart && typeof klart === "object") return klart;
     return { klart: klart || "Ändringen sparades." };
   } catch (f) {
     // redirect() och notFound() signalerar genom att kasta, och de felen ska

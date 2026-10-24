@@ -85,6 +85,11 @@ CREATE TABLE positions (
 CREATE TABLE people (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
   org_id        INTEGER NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  -- Nyckeln i kommunens personalsystem, normalt anställningsnumret. Den behövs
+  -- för att en import ska kunna uppdatera rätt person. Maskerat personnummer
+  -- duger inte: fyra siffror är bortmaskerade, och två personer födda samma
+  -- dag skulle slås ihop. Null för rader som matats in för hand.
+  extern_id         TEXT,
   namn              TEXT    NOT NULL,
   pnr_maskerat      TEXT    NOT NULL,             -- ÅÅÅÅMMDD-XXXX, fyra sista maskeras
   unit_id           INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
@@ -408,6 +413,9 @@ CREATE INDEX idx_audit_org         ON audit_log(org_id, tidpunkt);
 CREATE INDEX idx_user_orgs_org     ON user_orgs(org_id);
 CREATE INDEX idx_positions_unit    ON positions(unit_id);
 CREATE INDEX idx_people_unit       ON people(unit_id);
+-- Nyckeln är unik inom organisationen, inte globalt: två kommuner numrerar
+-- sin personal oberoende av varandra.
+CREATE UNIQUE INDEX idx_people_extern ON people(org_id, extern_id) WHERE extern_id IS NOT NULL;
 CREATE INDEX idx_placements_pos    ON placements(position_id);
 CREATE INDEX idx_placements_person ON placements(person_id);
 CREATE INDEX idx_dependencies_fn   ON dependencies(function_id);

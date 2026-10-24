@@ -1818,6 +1818,19 @@ seedaStatus(VASTMARK, "region", "Helena Krantz", {
   "LKRB-INFOR": { status: "pagaende", ansvarig: "Helena Krantz", evidens: "Gapanalys mot prop. 2026/27:5 påbörjad" },
 });
 
+/* ------------------------------------------------- nycklar mot HR-systemet */
+// extern_id är anställningsnumret i kommunens personalsystem och det som en
+// import matchar på. Demodatan får syntetiska nummer per organisation, så att
+// importfunktionen går att prova mot en befintlig personallista.
+for (const o of db.prepare("SELECT id, kortnamn FROM organisations").all()) {
+  const prefix = o.kortnamn.slice(0, 2).toUpperCase();
+  let nummer = 1000;
+  for (const p of db.prepare("SELECT id FROM people WHERE org_id = ? ORDER BY id").all(o.id)) {
+    db.prepare("UPDATE people SET extern_id = ? WHERE id = ?")
+      .run(`${prefix}-${++nummer}`, p.id);
+  }
+}
+
 /* ------------------------------------------- personuppgifter och gallring */
 // Gallringsfristen är ett arkivrättsligt beslut och inte ett förvalt värde, så
 // bara Ängsholm har beslutat någon. De övriga visas som obeslutade, vilket är

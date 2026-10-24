@@ -16,12 +16,23 @@ export function Formular({
   knapp,
   avbryt,
   className,
+  behallInmatning = false,
   children,
 }: {
   action: (data: FormData) => Promise<FormSvar>;
   knapp: string;
   avbryt?: string;
   className?: string;
+  /**
+   * Behåll inmatningen även när åtgärden lyckades.
+   *
+   * Sätts för formulär där svaret är ett underlag för nästa steg, som en
+   * torrkörning inför en import: töms fältet där måste filen klistras in på
+   * nytt för att köras skarpt, och poängen med torrkörningen går förlorad.
+   * Lämnas av för formulär där en lyckad åtgärd betyder att fälten ska tömmas,
+   * som när ett nytt krav lagts till.
+   */
+  behallInmatning?: boolean;
   children: ReactNode;
 }) {
   const formular = useRef<HTMLFormElement>(null);
@@ -40,9 +51,11 @@ export function Formular({
   // React 19 nollställer ett okontrollerat formulär när åtgärden är klar. Vid
   // ett valideringsfel innebär det att användaren förlorar allt hen skrivit —
   // en lång beskrivning försvinner för att motiveringen var för kort. Därför
-  // återställs inmatningen när åtgärden svarade med ett fel.
+  // återställs inmatningen när åtgärden svarade med ett fel, och även efter ett
+  // lyckat svar när formuläret bett om det.
   useEffect(() => {
-    if (!svar.fel || !formular.current) return;
+    const aterstall = svar.fel || (behallInmatning && svar.klart);
+    if (!aterstall || !formular.current) return;
     for (const [namn, varde] of senasteInmatning.current) {
       const falt = formular.current.elements.namedItem(namn);
       if (falt instanceof HTMLInputElement
@@ -51,7 +64,7 @@ export function Formular({
         falt.value = varde;
       }
     }
-  }, [svar]);
+  }, [svar, behallInmatning]);
 
   return (
     <form ref={formular} action={skicka} className={className}>
@@ -65,6 +78,15 @@ export function Formular({
       {svar.klart && !svar.fel && (
         <div role="status" className="sm:col-span-2">
           <Notis ton="ok">{svar.klart}</Notis>
+        </div>
+      )}
+      {svar.rader && svar.rader.length > 0 && (
+        <div className="sm:col-span-2 rounded-md bg-slate-50 ring-1 ring-inset ring-slate-200 p-3">
+          <ul className="space-y-0.5 text-xs text-slate-700 font-mono leading-relaxed">
+            {svar.rader.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
         </div>
       )}
 

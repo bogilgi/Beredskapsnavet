@@ -89,6 +89,8 @@ src/lib/formsvar.ts    Serveråtgärder som svarar med text i stället för att 
 src/lib/inbjudan*.ts   Inbjudan av användare, med engångskod och hashad token
 src/lib/personuppgifter.ts  Registerförteckning enligt artikel 30
 src/lib/gallring-actions.ts Gallring, med spärr när fristen inte är beslutad
+src/lib/personalimport.ts   CSV-inläsning, med citerade fält och BOM
+src/lib/import-actions.ts   Import med torrkörning och allt-eller-inget
 scripts/seed.mjs       Demodata för Ängsholms kommun
 src/lib/db.ts          Anslutning, frågehjälpare, spårbarhetslogg
 src/lib/queries.ts     Alla läsningar och de automatiska kontrollerna
@@ -158,6 +160,37 @@ stämdes av och av vem. **En tom `kontrollerad` betyder att raden inte är avst�
 mot författningstext**, och raden visas då som *Ej avstämd mot källa* i
 gränssnittet och i CSV-exporten. Ett krav som ingen kontrollerat får inte se
 likadant ut som ett som är kontrollerat.
+
+## Import av personal
+
+Personalregistret kan läsas in från kommunens personalsystem som
+semikolonseparerad CSV, samma format som exporten. Importen når man från
+krigsplaceringsmodulen och den kräver skrivbehörighet där — HR-rollen har det.
+
+Tre saker styr utformningen:
+
+**Nyckeln.** Matchningen sker på `extern_id`, anställningsnumret i
+personalsystemet. Maskerat personnummer duger inte: fyra siffror är
+bortmaskerade, och två personer födda samma dag skulle slås ihop. Rader utan
+nyckel avvisas.
+
+**Torrkörning först.** Utan kryss i *Genomför importen* läses filen och
+rapporten visas, men ingenting skrivs. En fil från ett personalsystem innehåller
+fel — stavade verksamhetsnamn, dubbla anställningsnummer, rader utan nyckel —
+och den som importerar ska se dem innan de blir till poster. Hittas fel vid en
+skarp körning avbryts hela importen: en halvt genomförd import av ett
+personalregister är värre än ingen, eftersom den som rättar filen inte längre
+vet vad som redan gått in.
+
+**Importen rör aldrig krigsplaceringar.** Den uppdaterar personuppgifter och
+anställning. Vem som är placerad på vilken befattning är ett beslut som fattas i
+systemet, med samrådskontroller och allt, och ska inte kunna ändras av en fil.
+Ett tomt fält lämnar dessutom uppgiften orörd i stället för att radera den,
+eftersom en HR-export inte alltid innehåller alla kolumner.
+
+Filvägen finns kvar även när en direktintegration byggts, av den enkla
+anledningen att alla kommuner inte har ett personalsystem som går att integrera
+mot.
 
 ## Personuppgifter och gallring
 
@@ -378,8 +411,9 @@ saknas medvetet:
    är dokumenterad och gallringsrutinen finns, men fristerna måste beslutas av
    varje kommuns arkivmyndighet, och förteckningen granskas av
    dataskyddsombudet. Det är arbete hos kunden, inte i koden.
-3. **Integrationer.** Personalregistret bör hämtas från kommunens HR-system i
-   stället för att matas in.
+3. **Direktintegration mot personalsystemet.** Filimport finns, med nyckel,
+   torrkörning och validering. Att hämta personallistan automatiskt kräver en
+   motpart att integrera mot och avtalas per kund.
 4. **Bevakning av rättsläget.** Lagrum, intervall och förfallodatum är
    kontrollerade mot författningstexten i oktober 2026, och varje krav bär en
    källhänvisning och en rättslig status i gränssnittet. Regelverket är dock

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { kravLas } from "@/lib/session";
 import { farSkriva } from "@/lib/behorighet";
 import { Panel, Sidrubrik, Stat, Status, Pill, Notis, Tomt } from "@/components/ui";
@@ -59,6 +60,10 @@ export default async function Krigsplaceringssida() {
         beskrivning="Koppling mellan person och befattning i krigsorganisationen, med beslut och underrättelse. Systemet kontrollerar automatiskt samrådsplikt, dubbelplaceringar och säkerhetsprövning innan en placering kan beslutas."
         atgard={
           skriv ? (
+          <div className="flex items-center gap-2">
+          <Link href="/krigsplacering/import" className="knapp-sekundar">
+            Importera personal
+          </Link>
           <GlobalKnapp
             action={beslutaAllaUtanKonflikt}
             variant="primar"
@@ -66,6 +71,7 @@ export default async function Krigsplaceringssida() {
           >
             Besluta {utanKonflikt.length} utan avvikelse
           </GlobalKnapp>
+          </div>
           ) : undefined
         }
       />
