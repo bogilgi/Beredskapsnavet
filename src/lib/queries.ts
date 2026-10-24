@@ -269,6 +269,18 @@ export function hamtaKonflikter(orgId: number): Konflikt[] {
 
 /* ---------------------------------------------------------------------- RSA */
 
+/**
+ * En lista som redigeras på plats får inte sorteras på det fält som redigeras.
+ *
+ * Gjorde den det hoppade raden undan i samma ögonblick som den ändrades, och
+ * den som arbetade sig nedåt i listan redigerade sedan ett annat objekt än det
+ * hen just såg — för en tangentbordsanvändare, vars fokus står kvar på samma
+ * plats i dokumentet, blev nästa tryck en ändring på fel rad. I ett system som
+ * används som tillsynsunderlag är det inte ett skönhetsfel.
+ *
+ * Prioriteringen finns kvar där den hör hemma: översiktens lista över vad som
+ * behöver göras härnäst, som inte redigeras i.
+ */
 export const hamtaRisker = (orgId: number) =>
   all<Risk>(`
     SELECT r.*, u.kortnamn,
@@ -276,7 +288,7 @@ export const hamtaRisker = (orgId: number) =>
         WHERE a.org_id = r.org_id AND a.kalla = 'rsa' AND a.kalla_ref = r.namn) AS atgarder
     FROM risks r LEFT JOIN units u ON u.id = r.unit_id
     WHERE r.org_id = ?
-    ORDER BY r.sannolikhet * r.konsekvens DESC, r.namn
+    ORDER BY r.namn
   `, orgId);
 
 /* --------------------------------------------------------- kontinuitet */
@@ -303,8 +315,7 @@ export const hamtaResurser = (orgId: number) =>
   all<Resurs>(`
     SELECT r.*, u.kortnamn FROM resources r LEFT JOIN units u ON u.id = r.unit_id
     WHERE r.org_id = ?
-    ORDER BY CASE r.status WHEN 'ur_drift' THEN 1 WHEN 'okand' THEN 2
-      WHEN 'service' THEN 3 ELSE 4 END, r.kategori, r.benamning
+    ORDER BY r.kategori, r.benamning
   `, orgId);
 
 /* ------------------------------------------------------------------ övningar */
@@ -323,10 +334,7 @@ export const hamtaAtgarder = (orgId: number) =>
   all<Atgard>(`
     SELECT a.*, u.kortnamn FROM actions a LEFT JOIN units u ON u.id = a.unit_id
     WHERE a.org_id = ?
-    ORDER BY
-      CASE a.status WHEN 'klar' THEN 2 WHEN 'avbruten' THEN 3 ELSE 1 END,
-      CASE a.prioritet WHEN 'hog' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
-      a.forfallodatum IS NULL, a.forfallodatum
+    ORDER BY a.forfallodatum IS NULL, a.forfallodatum, a.id
   `, orgId);
 
 /* ------------------------------------------------------------------- lagkrav */
@@ -377,8 +385,7 @@ export function hamtaKrav(orgId: number): Krav[] {
     FROM requirement_status s
     JOIN requirement_catalog k ON k.id = s.krav_id
     WHERE s.org_id = ?
-    ORDER BY CASE s.status WHEN 'brist' THEN 1 WHEN 'ej_paborjad' THEN 2
-      WHEN 'pagaende' THEN 3 ELSE 4 END, s.nasta_forfallo IS NULL, s.nasta_forfallo
+    ORDER BY k.kod
   `, orgId);
 
   return rader.map(({ kontextmall, ...rad }) => ({

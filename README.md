@@ -124,9 +124,20 @@ inloggade sidor klarar nu 320 pixlar — 400 procents förstoring — utan vågr
 sidrullning. Datatabeller rullar i sina egna fokuserbara områden, vilket
 WCAG 1.4.10 undantar.
 
+```bash
+npm run tangentbord
+```
+
+Sju kritiska flöden prövas dessutom **utan ett enda musklick** — logga in,
+navigera i menyn, ändra kravstatus med piltangent, öppna den fällbara menyn.
+Det provet avslöjade ett fel som varken axe-core eller en kodläsning hittar:
+fyra listor sorterades på samma fält som de redigeras i, så raden hoppade undan
+i samma ögonblick som den ändrades och nästa tangenttryck träffade **fel rad**.
+Listorna är nu stabilt sorterade, med regressionstest.
+
 **Att noll fel rapporteras är ett golv, inte ett intyg.** Ett maskinellt verktyg
-hittar en del av WCAG. Granskning med skärmläsare, hela tangentbordsvägen och
-begriplighet återstår och kräver en människa.
+hittar en del av WCAG. Granskning med skärmläsare och begriplighet återstår och
+kräver en människa.
 Vad som är prövat och vad som inte är det står i
 [`docs/tillganglighet.md`](docs/tillganglighet.md), som är underlag till
 kommunens egen tillgänglighetsredogörelse — den skyldigheten är kommunens, inte
@@ -189,6 +200,7 @@ db/schema.sql          Datamodell, inkl. delad kravkatalog och status per org
 scripts/data/          Nationellt organisationsregister, vendorat med proveniens
 scripts/demo.mjs       Startar hela demon och skriver ut körordningen
 scripts/tillganglighet.mjs  WCAG-granskning med axe-core
+scripts/tangentbord.mjs     Kritiska flöden utan mus
 docs/tillganglighet.md      Underlag till kommunens tillgänglighetsredogörelse
 src/lib/katalog-actions.ts  Redaktionen: ändring, avstämning och nya krav
 src/lib/formsvar.ts    Serveråtgärder som svarar med text i stället för att krascha

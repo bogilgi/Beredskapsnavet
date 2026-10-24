@@ -2,7 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -339,4 +339,69 @@ test("bara leverantörens konto har leverantörsflaggan", () => {
   const med = alla("SELECT epost FROM users WHERE leverantor = 1").map((u) => u.epost);
   assert.equal(med.length, 1, "fler eller färre än ett konto har leverantörsbehörighet");
   assert.match(med[0], /@beredskapsnavet\.se$/);
+});
+
+/* ------------------------------------------- stabil ordning i redigerbara listor */
+
+/**
+ * En lista som redigeras på plats får inte sorteras på det fält som redigeras.
+ *
+ * Gjorde den det hoppade raden undan i samma ögonblick som den ändrades, och
+ * den som arbetade sig nedåt redigerade sedan ett annat objekt än det hen just
+ * såg. Testet skriver det redigerade fältet och kontrollerar att ordningen står
+ * kvar — samma fråga som gränssnittet använder, med samma sortering.
+ */
+const REDIGERADE_LISTOR = [
+  {
+    namn: "kravlistan",
+    sql: `SELECT k.kod AS nyckel FROM requirement_status s
+          JOIN requirement_catalog k ON k.id = s.krav_id
+          WHERE s.org_id = ? ORDER BY k.kod`,
+    skriv: `UPDATE requirement_status SET status = 'uppfylld'
+            WHERE id = (SELECT MIN(id) FROM requirement_status WHERE org_id = ?)`,
+  },
+  {
+    namn: "åtgärdsregistret",
+    sql: `SELECT a.id AS nyckel FROM actions a WHERE a.org_id = ?
+          ORDER BY a.forfallodatum IS NULL, a.forfallodatum, a.id`,
+    skriv: `UPDATE actions SET status = 'klar'
+            WHERE id = (SELECT MIN(id) FROM actions WHERE org_id = ?)`,
+  },
+  {
+    namn: "resursförteckningen",
+    sql: `SELECT r.id AS nyckel FROM resources r WHERE r.org_id = ?
+          ORDER BY r.kategori, r.benamning`,
+    skriv: `UPDATE resources SET status = 'ur_drift'
+            WHERE id = (SELECT MIN(id) FROM resources WHERE org_id = ?)`,
+  },
+  {
+    namn: "risklistan",
+    sql: `SELECT r.namn AS nyckel FROM risks r WHERE r.org_id = ? ORDER BY r.namn`,
+    skriv: `UPDATE risks SET sannolikhet = 5, konsekvens = 5
+            WHERE id = (SELECT MIN(id) FROM risks WHERE org_id = ?)`,
+  },
+];
+
+test("ordningen står kvar när en rad redigeras i listan", () => {
+  // Skrivningarna sker i en egen kopia, så den läsbara testdatabasen står kvar.
+  const kopia = join(katalog, "ordning.db");
+  copyFileSync(join(katalog, "test.db"), kopia);
+  const skriv = new DatabaseSync(kopia);
+  const org = skriv.prepare("SELECT MIN(id) AS v FROM organisations").get().v;
+
+  try {
+    for (const lista of REDIGERADE_LISTOR) {
+      const fore = skriv.prepare(lista.sql).all(org).map((r) => r.nyckel);
+      assert.ok(fore.length > 1, `${lista.namn} har för få rader att pröva ordningen på`);
+      skriv.prepare(lista.skriv).run(org);
+      const efter = skriv.prepare(lista.sql).all(org).map((r) => r.nyckel);
+      assert.deepEqual(
+        efter, fore,
+        `${lista.namn} sorteras om när en rad redigeras: raden hoppar undan och nästa ` +
+        `ändring träffar fel objekt`,
+      );
+    }
+  } finally {
+    skriv.close();
+  }
 });

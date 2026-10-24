@@ -76,15 +76,41 @@ kräver en människa:
 1. **Granskning med skärmläsare.** Att läsordningen är begriplig, att
    tabellernas rubrikkopplingar fungerar i praktiken och att statusbudskap
    annonseras är inte prövat med NVDA, JAWS eller VoiceOver.
-2. **Hela tangentbordsvägen.** Fokusmarkering finns och rullbara områden är
-   fokuserbara, men att varje flöde — logga in, besluta en krigsplacering,
-   ansluta en organisation — går att genomföra utan mus är inte systematiskt
-   prövat.
-3. **Begriplighet.** Språket är fackspråk av nödvändighet: lagrum,
+2. **Begriplighet.** Språket är fackspråk av nödvändighet: lagrum,
    säkerhetsklass, kritikalitet. Om texterna är begripliga för målgruppen är en
    redaktionell fråga som inte går att mäta maskinellt.
-4. **Utskriftsvyn.** Beredskapsrapporten är gjord för att skrivas ut. Hur den
+3. **Utskriftsvyn.** Beredskapsrapporten är gjord för att skrivas ut. Hur den
    fungerar för någon som läser den digitalt med hjälpmedel är inte granskat.
+
+## Tangentbordsvägen
+
+Sju kritiska flöden prövas utan ett enda musklick — allt med Tab, piltangenter
+och Enter:
+
+```
+npm run demo          # i en terminal
+npm run tangentbord   # i en annan
+```
+
+Logga in · genvägen till innehållet först · navigera i menyn · ändra kravstatus
+med piltangent · att raden står kvar när den ändras · synlig fokusmarkering på
+40 element · öppna den fällbara menyn på smal skärm. Samtliga går igenom.
+
+Det provet avslöjade ett fel som varken axe-core eller en läsning av koden
+hittar: **fyra listor sorterades på samma fält som de redigeras i.** Kravlistan
+på status, åtgärdsregistret på status, resursförteckningen på status och
+risklistan på riskvärdet. Raden hoppade därmed undan i samma ögonblick som den
+ändrades. För en tangentbordsanvändare, vars fokus står kvar på samma plats i
+dokumentet, blev nästa tryck en ändring på **fel rad** — i ett system som
+används som tillsynsunderlag.
+
+De fyra listorna är nu stabilt sorterade, och ett regressionstest i `tests/`
+skriver det redigerade fältet och kontrollerar att ordningen står kvar.
+Prioriteringen finns kvar där den hör hemma: översiktens lista över vad som
+behöver göras härnäst, som inte redigeras i.
+
+Provet säger inte hur flödena **låter** i en skärmläsare, bara att de går att
+nå och utföra.
 
 ## Kända begränsningar att redovisa
 
