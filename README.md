@@ -21,15 +21,39 @@ Alla personer, anläggningar och diarienummer är påhittade.
 
 ## Kom igång
 
+För en demonstration:
+
 ```bash
 npm install
-npm run db:reset   # skapar och seedar db/beredskap.db
-npm run dev        # http://localhost:4010
+npm run demo       # http://localhost:4010
 ```
 
-Produktionsbygge: `npm run build && npm start`. Tester: `npm test`.
+`npm run demo` seedar databasen, bygger appen, startar test-utfärdaren för den
+federerade inloggningen, startar appen och skriver ut en körordning med
+inloggningsuppgifter. Ctrl-C stänger allt.
 
-Databasens plats går att styra med `BEREDSKAP_DB`.
+Den kör medvetet produktionsbygget och inte utvecklingsservern: den senare
+kompilerar varje sida vid första besöket, vilket ger flera sekunders väntan
+mitt i en demonstration. Från rent läge tar det cirka 20 sekunder att få upp
+alltihop.
+
+För utveckling:
+
+```bash
+npm run db:reset   # skapar och seedar db/beredskap.db
+npm run dev        # http://localhost:4010
+npm test
+npm run typecheck
+```
+
+Produktionsbygge: `npm run build && npm start`. Databasens plats går att styra
+med `BEREDSKAP_DB`.
+
+Kräver Node 22: databasen använder inbyggda `node:sqlite`, som är experimentell
+och körs med `--experimental-sqlite`.
+
+Typer, tester, seedning och bygge körs i GitHub Actions vid varje push och
+pull request, se `.github/workflows/kontroll.yml`.
 
 ## Tester
 
@@ -124,6 +148,7 @@ segmentet.
 ```
 db/schema.sql          Datamodell, inkl. delad kravkatalog och status per org
 scripts/data/          Nationellt organisationsregister, vendorat med proveniens
+scripts/demo.mjs       Startar hela demon och skriver ut körordningen
 src/lib/katalog-actions.ts  Redaktionen: ändring, avstämning och nya krav
 src/lib/formsvar.ts    Serveråtgärder som svarar med text i stället för att krascha
 src/lib/inbjudan*.ts   Inbjudan av användare, med engångskod och hashad token
