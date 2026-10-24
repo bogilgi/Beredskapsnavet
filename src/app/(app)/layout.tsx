@@ -15,7 +15,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const org = hamtaOrganisation(anvandare.org_id);
   const medlemskap = hamtaMedlemskap(anvandare.id);
   const niva = def(BEREDSKAPSNIVA, org.beredskapsniva);
-  const synliga = MODULER.filter((m) => farLasa(anvandare.roll, m));
+  // Modulen organisationer räcker det inte att ha rollen till: den visar andra
+  // kommuner och kräver därför leverantörsbehörighet. Samma villkor som i
+  // kravLeverantor(), så menyn aldrig visar något sidan sedan nekar.
+  const synliga = MODULER.filter(
+    (m) =>
+      farLasa(anvandare.roll, m) &&
+      (m !== "organisationer" || anvandare.leverantor === 1),
+  );
 
   return (
     <div className="flex min-h-screen">

@@ -83,6 +83,7 @@ segmentet.
 
 ```
 db/schema.sql          Datamodell, inkl. delad kravkatalog och status per org
+scripts/data/          Nationellt organisationsregister, vendorat med proveniens
 scripts/seed.mjs       Demodata för Ängsholms kommun
 src/lib/db.ts          Anslutning, frågehjälpare, spårbarhetslogg
 src/lib/queries.ts     Alla läsningar och de automatiska kontrollerna
@@ -153,6 +154,56 @@ mot författningstext**, och raden visas då som *Ej avstämd mot källa* i
 gränssnittet och i CSV-exporten. Ett krav som ingen kontrollerat får inte se
 likadant ut som ett som är kontrollerat.
 
+## Nationellt organisationsregister
+
+`org_registry` innehåller **samtliga kommuner och regioner i landet** med
+kommunkod, län och tillsynsmyndighet. Det är referensdata, inte kunddata: en rad
+finns för varje organisation i Sverige, oavsett om den är kund. Att lägga upp en
+ny kund är därmed ett val i en lista i stället för ett formulär där någon skriver
+in länet för hand, och en säljdemo kan börja med att köparens egen kommun redan
+finns där.
+
+Registret innehåller **310 rader, inte 311**. Sverige har 290 kommuner och 21
+regioner, men Gotlands kommun är en enda juridisk person som fullgör både
+kommunens och regionens uppgifter. Den har därför typen `kommun_region` och får
+båda kravuppsättningarna: 15 gemensamma krav, 5 kommunkrav och 4 regionkrav.
+
+| Typ | Antal | Krav ur katalogen |
+| --- | --- | --- |
+| `kommun` | 289 | 20 |
+| `region` | 20 | 19 |
+| `kommun_region` | 1 (Gotland) | 24 |
+
+Källorna står i `scripts/data/organisationsregister.json`: SCB:s läns- och
+kommunkoder för indelningen, cybersäkerhetsförordningen (2025:1507) 7 och
+10–15 §§ för tillsynsmyndigheten. Filen är vendorad in i repot med avsikt.
+Registret får inte hämtas över nät vid seedning, eftersom installationen ska gå
+att köra i ett slutet kommunnät.
+
+Invånarantalet ingår **inte** i registret och är frivilligt när en organisation
+läggs upp. Det styr ingen bedömning i systemet: storlekstestet i
+cybersäkerhetslagen utgår från antal anställda, inte invånare. Ett tomt fält är
+ärligare än en gissning.
+
+## Att ansluta en organisation
+
+Modulen *Anslutna organisationer* visar registret och vilka som är kunder.
+Anslutning hämtar namn, län, huvudmannatyp och tillsynsmyndighet ur registret —
+det är fakta om landet och inte något en säljare ska kunna skriva fel — och
+skapar kravlistan ur den delade katalogen efter huvudmannatyp. Det som matas in
+är kontaktvägar.
+
+Åtkomsten kräver mer än rollen administratör. Att lägga upp en ny kund är till
+sin natur en operation över organisationsgränsen, och sidan avslöjar dessutom
+vilka andra kommuner som är kunder. En administratör i en kommun är
+administratör *där*, inte i installationen som helhet. Därför finns flaggan
+`users.leverantor`, och spärren `kravLeverantor()` kräver både skrivbehörighet i
+modulen och att kontot är leverantörspersonal. Menyn använder samma villkor, så
+den visar aldrig något som sidan sedan nekar.
+
+Anslutningen loggas i spårbarhetsloggen både hos den nya organisationen och hos
+den som utförde den.
+
 ## Behörighet
 
 Åtkomsten styrs per modul i tre nivåer: ingen, läsa, ändra. Matrisen ligger i
@@ -200,9 +251,14 @@ Nekad åtkomst och nekad skrivning loggas med användare, tidpunkt och modul.
 | Beredskapssamordnare, region | helena.krantz@regionvastmark.se | vastmark2026 | Region Västmark |
 | Säkerhetsskyddschef, region | camilla.wahl@regionvastmark.se | sakerhet2026 | Region Västmark |
 | Förvaltningschef, hälso- och sjukvård | ingrid.falk@regionvastmark.se | sjukvard2026 | Region Västmark |
-| Driftansvarig, leverantör | elsa.wikner@beredskapsnavet.se | leverantor2026 | Alla tre, olika roll |
+| Driftansvarig, leverantör | elsa.wikner@beredskapsnavet.se | leverantor2026 | Alla fyra, olika roll. Enda kontot med leverantörsflagga |
 
-Tre demos värda att köra: logga in som kommunledning för att visa att
+Fyra demos värda att köra: logga in som Jens Åkerlund, som är systemadministratör
+i Ängsholm, och konstatera att modulen *Anslutna organisationer* varken syns i
+menyn eller går att nå på direkt adress — rollen räcker inte, det krävs
+leverantörsbehörighet.
+
+De övriga tre: logga in som kommunledning för att visa att
 ändringsmöjligheter försvinner; som Helena Krantz och sedan Marika Öhlund för
 att se att kravlistan skiljer sig mellan region och kommun fast katalogen är
 densamma; och som Elsa för att byta organisation i topbaren. Hon är systemadministratör i Nordmark och Vreta men bara
@@ -251,6 +307,8 @@ saknas medvetet:
    genom HSLF-FS 2025:69, utan att någon motsvarande föreskrift för beredskap
    inom landet har kunnat bekräftas. Skyldigheten i 7 kap. 2 § HSL kvarstår,
    men föreskriftsläget måste stämmas av innan listan används vid tillsyn.
-7. **Organisationsadministration.** Nya kommuner och nya konton läggs in genom
-   seedning. Ett gränssnitt för att lägga upp en kommun, bjuda in användare och
-   ge behörighet saknas.
+7. **Inbjudan av användare.** En organisation kan läggas upp ur registret, och
+   den som gör det får administratörsbehörighet i den. Att bjuda in övriga
+   användare saknas fortfarande och görs genom seedning. Funktionen hänger ihop
+   med punkt 1: med federerad inloggning blir inbjudan en fråga om att koppla
+   en katalogtjänst, inte om att skapa konton.

@@ -30,7 +30,10 @@ export function forfalloText(d: string | null | undefined): string {
   return datum(d);
 }
 
-export function tal(n: number, decimaler = 0): string {
+export function tal(n: number | null | undefined, decimaler = 0): string {
+  // Invånarantalet är okänt tills någon fyllt i det, och ska då visas som
+  // okänt i stället för som noll.
+  if (n === null || n === undefined) return "–";
   return new Intl.NumberFormat("sv-SE", {
     minimumFractionDigits: decimaler,
     maximumFractionDigits: decimaler,

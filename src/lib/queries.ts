@@ -6,7 +6,7 @@ import { idag } from "@/lib/format";
 
 export type Organisation = {
   id: number; kortnamn: string; namn: string; typ: string; lan: string;
-  invanare: number; mandatperiod: string; beredskapsniva: string;
+  invanare: number | null; mandatperiod: string; beredskapsniva: string;
   samordnare: string; samordnare_epost: string; tib_telefon: string;
   uppdaterad: string; ansluten: string; tillsyn_cyber: string; aktiv: number;
 };
@@ -350,7 +350,7 @@ function fyllKontext(mall: string, org: Organisation, anstallda: number): string
     .replaceAll("{namn}", org.namn)
     .replaceAll("{typ}", org.typ)
     .replaceAll("{lan}", org.lan)
-    .replaceAll("{invanare}", siffra(org.invanare))
+    .replaceAll("{invanare}", org.invanare === null ? "okänt antal" : siffra(org.invanare))
     .replaceAll("{anstallda}", siffra(anstallda))
     .replaceAll("{storlek}", vasentlig ? "väsentlig" : "viktig")
     .replaceAll("{storleksgrund}", vasentlig ? "större än medelstor" : "medelstor eller mindre")
@@ -480,6 +480,46 @@ export function hamtaOversikt(orgId: number): Oversikt {
     ),
   };
 }
+
+/* --------------------------------------------------- nationellt register */
+
+export type Registerrad = {
+  id: number; kod: string; namn: string; kortnamn: string; typ: string;
+  lan: string; tillsyn_cyber: string;
+  /** Satt när organisationen är upplagd som kund. */
+  org_id: number | null;
+  ansluten: string | null;
+  aktiv: number | null;
+};
+
+/**
+ * Samtliga kommuner och regioner i landet, med uppgift om vilka som är kunder.
+ *
+ * Till skillnad från allt annat i den här filen filtreras den INTE på
+ * organisation, eftersom den är referensdata och inte kunddata. Att den
+ * dessutom avslöjar vilka andra kommuner som är kunder gör att läsningen måste
+ * spärras på leverantörsnivå; se kravLeverantor() i session.ts.
+ */
+export const hamtaRegister = () =>
+  all<Registerrad>(`
+    SELECT r.id, r.kod, r.namn, r.kortnamn, r.typ, r.lan, r.tillsyn_cyber,
+           o.id AS org_id, o.ansluten, o.aktiv
+    FROM org_registry r
+    LEFT JOIN organisations o ON o.registry_id = r.id
+    ORDER BY r.typ <> 'region', r.namn
+  `);
+
+/** Hur många krav en organisation av en viss typ får ur katalogen. */
+export const hamtaKravantalPerTyp = () =>
+  all<{ typ: string; antal: number }>(`
+    SELECT t.typ, COUNT(*) AS antal
+    FROM (SELECT 'kommun' AS typ UNION SELECT 'region' UNION SELECT 'kommun_region') t
+    JOIN requirement_catalog k
+      ON k.galler_for = 'bada'
+      OR k.galler_for = t.typ
+      OR (t.typ = 'kommun_region' AND k.galler_for IN ('kommun', 'region'))
+    GROUP BY t.typ
+  `);
 
 /* ---------------------------------------------------------------- användare */
 

@@ -5,13 +5,43 @@
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
+-- Nationellt register över samtliga kommuner och regioner.
+--
+-- Referensdata, inte kunddata: här finns en rad för varje organisation i
+-- landet, oavsett om den är kund. Att lägga upp en ny kund är ett val ur
+-- registret, inte ett formulär där någon skriver in länet för hand.
+--
+-- Gotland förekommer en gång, som typen kommun_region. Kommunen är en enda
+-- juridisk person som fullgör både kommunens och regionens uppgifter, och ska
+-- därför ha båda kravuppsättningarna. Antalet juridiska personer i landet är
+-- alltså 310, inte 290 + 21.
+CREATE TABLE org_registry (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  -- SCB:s kommunkod (fyra siffror) för kommun, länskod (två) för region.
+  kod           TEXT    NOT NULL UNIQUE,
+  namn          TEXT    NOT NULL UNIQUE,
+  kortnamn      TEXT    NOT NULL UNIQUE,
+  typ           TEXT    NOT NULL,            -- kommun | region | kommun_region
+  lan           TEXT    NOT NULL,
+  -- Följer av länet, och för region även av att regionen är vårdgivare.
+  tillsyn_cyber TEXT    NOT NULL
+);
+
+CREATE INDEX idx_registry_typ ON org_registry(typ);
+CREATE INDEX idx_registry_lan ON org_registry(lan);
+
 CREATE TABLE organisations (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
   kortnamn          TEXT    NOT NULL UNIQUE,      -- används i sökvägar och loggar
   namn              TEXT    NOT NULL,
-  typ               TEXT    NOT NULL,             -- kommun | region
+  -- Vilken rad i det nationella registret kunden svarar mot. Null bara för
+  -- organisationer som lagts upp innan registret fanns.
+  registry_id       INTEGER REFERENCES org_registry(id),
+  typ               TEXT    NOT NULL,             -- kommun | region | kommun_region
   lan               TEXT    NOT NULL,
-  invanare          INTEGER NOT NULL,
+  -- Null tills uppgiften är ifylld. Antalet invånare styr ingen bedömning i
+  -- systemet: storlekstestet i cybersäkerhetslagen utgår från anställda.
+  invanare          INTEGER,
   mandatperiod      TEXT    NOT NULL,             -- t.ex. "2027-2030"
   beredskapsniva    TEXT    NOT NULL,             -- fredstida | beredskapslarm | hojd_beredskap
   samordnare        TEXT    NOT NULL,
@@ -243,6 +273,12 @@ CREATE TABLE users (
   losenord_hash     TEXT    NOT NULL,
   losenord_salt     TEXT    NOT NULL,
   aktiv             INTEGER NOT NULL DEFAULT 1,
+  -- Driftpersonal hos leverantören. Att lägga upp en NY organisation är till
+  -- sin natur en operation över organisationsgränsen, och får därför inte
+  -- följa av att någon är administratör i sin egen kommun. Rollen styr vad en
+  -- användare får göra inom en organisation; den här flaggan styr vad som får
+  -- göras utanför alla.
+  leverantor        INTEGER NOT NULL DEFAULT 0,
   senaste_inloggning TEXT,
   skapad            TEXT    NOT NULL
 );

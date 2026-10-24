@@ -37,6 +37,25 @@ const ins = (table, row) => {
   return db.prepare(sql).run(...values).lastInsertRowid;
 };
 
+/* ------------------------------------------------- nationellt organisationsregister */
+// Samtliga kommuner och regioner i landet. Referensdata som delas av alla
+// kunder, och det som gör onboarding till ett val i en lista i stället för ett
+// formulär. Filen är vendorad in i repot med proveniens: registret får inte
+// hämtas över nät vid seedning, eftersom installationen ska gå att köra i ett
+// slutet kommunnät.
+const REGISTER = JSON.parse(
+  readFileSync(join(root, "scripts", "data", "organisationsregister.json"), "utf8"),
+);
+// Demoorganisationerna är påhittade och har med flit ingen rad i registret:
+// de representerar ingen verklig kommun, och registry_id står därför som null.
+const REGISTRY_ID = {};
+for (const r of REGISTER.organisationer) {
+  REGISTRY_ID[r.kod] = ins("org_registry", {
+    kod: r.kod, namn: r.namn, kortnamn: r.kortnamn, typ: r.typ,
+    lan: r.lan, tillsyn_cyber: r.tillsyn_cyber,
+  });
+}
+
 /* -------------------------------------------------------------- organisationer */
 // Installationen betjänar flera kommuner. Ängsholm har arbetat i systemet en
 // tid, Nordmark är halvvägs, Vreta har just anslutits.
@@ -1094,11 +1113,22 @@ for (const r of reqRows) {
 /* -------------------------------------------- status per organisation */
 // Organisationen får en statusrad för varje krav i katalogen som gäller dess
 // huvudmannatyp. En kommun får aldrig regionernas krav, och tvärtom.
+/**
+ * Gäller kravet den här huvudmannatypen?
+ *
+ * Gotland är en enda juridisk person som fullgör både kommunens och regionens
+ * uppgifter, och får därför båda uppsättningarna.
+ */
+function kravGaller(gallerFor, typ) {
+  if (gallerFor === "bada" || gallerFor === typ) return true;
+  return typ === "kommun_region" && (gallerFor === "kommun" || gallerFor === "region");
+}
+
 function seedaStatus(orgId, typ, standardAnsvarig, overrides) {
   ORG = orgId;
   for (const r of reqRows) {
     const galler = GALLER_FOR[r.kod] ?? "bada";
-    if (galler !== "bada" && galler !== typ) continue;
+    if (!kravGaller(galler, typ)) continue;
     const o = overrides[r.kod] ?? {};
     ins("requirement_status", {
       krav_id: KRAV_ID[r.kod],
@@ -1837,18 +1867,22 @@ const userRows = [
    [[VASTMARK, "forvaltningschef", "HSF"]]],
   // Driftansvarig hos leverantören, med åtkomst till flera kommuner men olika
   // roll i var och en. Visar att behörigheten följer medlemskapet.
+  // Leverantörsflaggan, sista fältet, ger åtkomst till det nationella registret
+  // och rätten att ansluta nya organisationer. Den följer kontot, inte rollen:
+  // Jens är administratör i Ängsholm men ska inte kunna lägga upp andra
+  // kommuner, medan Elsa ska det.
   ["Elsa Wikner", "elsa.wikner@beredskapsnavet.se", "leverantor2026",
    [[ANGSHOLM, "kommunledning", null], [NORDMARK, "administrator", null],
-    [VRETA, "administrator", null], [VASTMARK, "administrator", null]]],
+    [VRETA, "administrator", null], [VASTMARK, "administrator", null]], true],
 ];
 
 const ENHETER_PER_ORG = { [ANGSHOLM]: U, [NORDMARK]: UN, [VRETA]: UV, [VASTMARK]: UR };
 
-for (const [namn, epost, losenord, medlemskap] of userRows) {
+for (const [namn, epost, losenord, medlemskap, leverantor] of userRows) {
   const { salt, hash } = hasha(losenord);
   const userId = ins("users", {
     namn, epost, losenord_hash: hash, losenord_salt: salt,
-    aktiv: true, senaste_inloggning: null, skapad: "2026-01-15",
+    aktiv: true, leverantor: !!leverantor, senaste_inloggning: null, skapad: "2026-01-15",
   });
   for (const [org, roll, kort] of medlemskap) {
     ins("user_orgs", {
@@ -1873,6 +1907,7 @@ console.log(
   `${antal("critical_functions")} kritiska funktioner, ${antal("dependencies")} beroenden, ` +
   `${antal("resources")} resurser, ${antal("exercises")} övningar, ${antal("actions")} åtgärder, ` +
   `${antal("users")} användare i ${perTyp}.\n` +
+  `Register: ${antal("org_registry")} kommuner och regioner i landet.\n` +
   `Kravkatalog: ${antal("requirement_catalog")} krav delade av alla, ` +
   `${antal("requirement_status")} statusrader. ` +
   (() => {
