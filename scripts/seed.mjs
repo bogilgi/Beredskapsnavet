@@ -2060,4 +2060,14 @@ console.log(
       : `${v} krav är inte avstämda mot författningstext.`;
   })()
 );
+
+// Demokontonas lösenord står i den här filen och därmed i
+// versionshanteringen. Rutan på inloggningssidan visas bara när demodata
+// finns, men kontona går att logga in med vare sig rutan visas eller inte, så
+// en demo får inte nås av någon som inte ska komma in.
+console.log(
+  "\nDemodata. Kontonas lösenord står i scripts/seed.mjs och är offentliga.\n" +
+  "En installation i drift skapas i stället med\n\n" +
+  "  npm run installera -- --organisation <kod> --namn \"<namn>\" --epost <adress>\n",
+);
 db.close();

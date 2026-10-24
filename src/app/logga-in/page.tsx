@@ -2,13 +2,24 @@ import { redirect } from "next/navigation";
 import { InloggningsFormular } from "@/components/inloggning";
 import { hamtaAnvandare } from "@/lib/session";
 import { startsida } from "@/lib/behorighet";
-import { hamtaOrganisationer } from "@/lib/queries";
+import { demodataFinns, hamtaOrganisationer } from "@/lib/queries";
 import { hamtaIdpVal } from "@/lib/oidc";
 
 export const dynamic = "force-dynamic";
 
-// Demoinstallationens konton. I skarp drift sker inloggningen mot kommunens
-// katalogtjänst och den här rutan finns inte.
+/*
+ * Demoinstallationens konton.
+ *
+ * Lösenorden står i scripts/seed.mjs och därmed i versionshanteringen: de är
+ * offentliga. Rutan får alltså bara finnas där kontona ändå är offentliga.
+ *
+ * Villkoret läses ur datan, inte ur en flagga: demodatans organisationer har
+ * registry_id null, medan en ansluten kommun alltid pekar ut sin rad i det
+ * nationella registret. En flagga hade varit något att glömma vid
+ * driftsättningen, och det är precis det felet som gör rutan farlig. Se
+ * demodataFinns i queries.ts, och scripts/installera.mjs för en databas utan
+ * demodata.
+ */
 const DEMOKONTON = [
   ["Beredskapssamordnare", "marika.ohlund@angsholm.se", "beredskap2026", "Ängsholm · full åtkomst utom behörigheter"],
   ["HR och personalförsörjning", "sara.molin@angsholm.se", "personal2026", "Ängsholm · endast krigsplacering"],
@@ -58,6 +69,7 @@ export default async function Inloggningssida({
   if (anvandare) redirect(startsida(anvandare.roll));
   const organisationer = hamtaOrganisationer();
   const federerade = hamtaIdpVal();
+  const demo = demodataFinns();
 
   return (
     <div className="min-h-screen bg-brand-800 flex items-center justify-center p-6">
@@ -143,6 +155,7 @@ export default async function Inloggningssida({
             <InloggningsFormular />
           </div>
 
+          {demo && (
           <div className="kort p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
               Demoinstallation – konton att prova
@@ -170,6 +183,7 @@ export default async function Inloggningssida({
               byta mellan kommuner i topbaren. Spärrarna sitter på servern, inte i gränssnittet.
             </p>
           </div>
+          )}
         </div>
       </div>
     </div>

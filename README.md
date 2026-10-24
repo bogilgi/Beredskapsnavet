@@ -46,6 +46,29 @@ npm test
 npm run typecheck
 ```
 
+## En installation i drift
+
+Seedningen bygger en **demo**. Dess organisationer är påhittade och dess konton
+har lösenord som står i `scripts/seed.mjs`, alltså i versionshanteringen. En
+driftsättning av den seedade databasen är därför en driftsättning med
+offentligt kända inloggningar.
+
+En tom installation skapas i stället med:
+
+```
+npm run installera -- --organisation 1880 --namn "Namn Namnsson" --epost namn@leverantoren.se
+```
+
+Den skapar schema, laddar registret över landets 310 kommuner och regioner,
+lägger upp den första kunden ur registret och skapar ett driftkonto hos
+leverantören med ett slumpat lösenord som skrivs ut en gång. Ingen demodata,
+och därmed ingen ruta med demokonton på inloggningssidan — villkoret för den
+rutan läses ur datan, inte ur en flagga som går att glömma. Fler kunder läggs
+upp i gränssnittet under Organisationer; kommunens egna användare bjuds in
+under Användare.
+
+Installationen skriver aldrig över en befintlig databas.
+
 Produktionsbygge: `npm run build && npm start`. Databasens plats går att styra
 med `BEREDSKAP_DB`.
 

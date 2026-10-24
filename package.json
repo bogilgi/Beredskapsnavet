@@ -8,6 +8,7 @@
     "start": "next start -p 4010",
     "demo": "node scripts/demo.mjs",
     "db:reset": "node --experimental-sqlite scripts/seed.mjs",
+    "installera": "node --experimental-sqlite scripts/installera.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsc -p tsconfig.test.json && node --experimental-sqlite --test \"tests/*.test.mjs\"",
     "test:watch": "node --experimental-sqlite --test --watch \"tests/*.test.mjs\"",

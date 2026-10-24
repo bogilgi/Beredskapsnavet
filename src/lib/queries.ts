@@ -112,6 +112,23 @@ export const hamtaOrganisation = (orgId: number) =>
 export const hamtaOrganisationer = () =>
   all<Organisation>("SELECT * FROM organisations WHERE aktiv = 1 ORDER BY namn");
 
+/**
+ * Om databasen innehåller demodata.
+ *
+ * En organisation kan bara läggas upp ur det nationella registret — se
+ * laggUppOrganisation — så en ansluten kommun eller region har alltid en rad
+ * där. Demodatans organisationer är påhittade och har registry_id null, och
+ * det är den skillnaden som skiljer en demo från en installation.
+ *
+ * Signalen ligger i datan och inte i en flagga, därför att en flagga är
+ * något man glömmer vid driftsättningen. Samma signal används av spärren mot
+ * att seedningen raderar en skarp databas.
+ */
+export const demodataFinns = () =>
+  (one<{ v: number }>(
+    "SELECT COUNT(*) AS v FROM organisations WHERE registry_id IS NULL",
+  )?.v ?? 0) > 0;
+
 export const hamtaUnits = (orgId: number) =>
   all<Unit>(
     "SELECT * FROM units WHERE org_id = ? ORDER BY samhallsviktig DESC, namn",
