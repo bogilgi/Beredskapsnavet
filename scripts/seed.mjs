@@ -2,7 +2,7 @@
 // Kör: npm run db:reset
 import { DatabaseSync } from "node:sqlite";
 import { randomBytes, scryptSync } from "node:crypto";
-import { readFileSync, rmSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +10,64 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 // Sökvägen går att styra med BEREDSKAP_DB, så att tester kan seeda till en
 // egen fil utan att skriva över utvecklingsdatabasen.
 const dbPath = process.env.BEREDSKAP_DB || join(root, "db", "beredskap.db");
+
+/*
+ * Seedningen RADERAR databasen och bygger den på nytt. Det är avsikten vid
+ * utveckling och demonstration, men på en driftsatt installation vore det
+ * oåterkalleligt: kunddata, krigsplaceringar, personuppgifter och
+ * spårbarhetslogg. npm run demo kör seedningen, och ett felriktat kommando
+ * ska inte kunna kosta det.
+ *
+ * Signalen att det är skarp drift är att någon organisation är ansluten ur det
+ * nationella registret. Demodatans organisationer är påhittade och har
+ * registry_id null, så kontrollen skiljer dem åt utan att gissa.
+ */
+function kontrolleraAttDetFarRaderas() {
+  if (process.env.BEREDSKAP_SEED_FORCE === "ja") return;
+
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "NODE_ENV är production. Seedningen raderar databasen och vägrar därför köra.\n" +
+      "Är detta avsiktligt: BEREDSKAP_SEED_FORCE=ja npm run db:reset",
+    );
+    process.exit(3);
+  }
+
+  if (!existsSync(dbPath)) return;
+
+  let anslutna = 0;
+  let loggposter = 0;
+  try {
+    const befintlig = new DatabaseSync(dbPath, { readOnly: true });
+    try {
+      anslutna = befintlig
+        .prepare("SELECT COUNT(*) AS v FROM organisations WHERE registry_id IS NOT NULL")
+        .get().v;
+      loggposter = befintlig.prepare("SELECT COUNT(*) AS v FROM audit_log").get().v;
+    } finally {
+      befintlig.close();
+    }
+  } catch {
+    // Filen finns men går inte att läsa som en databas med det här schemat.
+    // Då är den antingen trasig eller från en äldre version, och får skrivas över.
+    return;
+  }
+
+  if (anslutna === 0) return;
+
+  console.error(
+    `Databasen innehåller ${anslutna} organisation(er) som är anslutna ur det ` +
+    `nationella registret, och ${loggposter} poster i spårbarhetsloggen.\n\n` +
+    "Seedningen raderar databasen och bygger den på nytt. Det ser ut som en\n" +
+    "driftsatt installation, inte en demo, så den vägrar köra.\n\n" +
+    "Är detta avsiktligt:  BEREDSKAP_SEED_FORCE=ja npm run db:reset\n" +
+    "Vill du bara demonstrera:  BEREDSKAP_DB=/tmp/demo.db npm run demo\n",
+  );
+  process.exit(3);
+}
+
+kontrolleraAttDetFarRaderas();
+
 for (const suffix of ["", "-wal", "-shm"]) {
   try { rmSync(dbPath + suffix); } catch {}
 }

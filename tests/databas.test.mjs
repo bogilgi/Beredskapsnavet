@@ -1,8 +1,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { copyFileSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -529,4 +529,52 @@ test("sessionen bär organisationen, så ett byte kräver medlemskap", () => {
     0,
     "det finns en session i en organisation användaren inte är medlem i",
   );
+});
+
+/* ----------------------------------------------- spärren mot att radera skarp data */
+
+/**
+ * Seedningen raderar databasen och bygger den på nytt. Det är avsikten vid
+ * demonstration, men på en driftsatt installation vore det oåterkalleligt.
+ * Spärren ska känna igen skillnaden och vägra.
+ */
+test("seedningen vägrar radera en databas med anslutna organisationer", () => {
+  const skarp = join(katalog, "skarp.db");
+  copyFileSync(join(katalog, "test.db"), skarp);
+
+  // Anslut en organisation ur registret. Demodatans organisationer är
+  // påhittade och har registry_id null; det är den skillnaden spärren läser.
+  const db2 = new DatabaseSync(skarp);
+  try {
+    const reg = db2.prepare("SELECT id FROM org_registry LIMIT 1").get();
+    db2.prepare(
+      `INSERT INTO organisations
+         (kortnamn, namn, registry_id, typ, lan, mandatperiod, beredskapsniva,
+          samordnare, samordnare_epost, tib_telefon, uppdaterad, ansluten, aktiv)
+       VALUES ('provkommun', 'Provkommun', ?, 'kommun', 'Örebro län', '2027-2030',
+               'fredstida', 'A B', 'a@b.example', '000', '2026-01-01', '2026-01-01', 1)`,
+    ).run(reg.id);
+  } finally {
+    db2.close();
+  }
+
+  const fore = statSync(skarp).size;
+  const r = spawnSync("node", ["--experimental-sqlite", "scripts/seed.mjs"], {
+    env: { ...process.env, BEREDSKAP_DB: skarp, BEREDSKAP_SEED_FORCE: "" },
+    encoding: "utf8",
+  });
+
+  assert.notEqual(r.status, 0, "seedningen körde trots anslutna organisationer");
+  assert.match(
+    r.stderr, /vägrar köra|anslutna ur det nationella registret|driftsatt/,
+    "vägran saknar en läsbar förklaring",
+  );
+  assert.equal(statSync(skarp).size, fore, "databasfilen ändrades trots att seedningen vägrade");
+
+  // Och den ska gå igenom när avsikten är uttalad, annars är spärren i vägen.
+  const r2 = spawnSync("node", ["--experimental-sqlite", "scripts/seed.mjs"], {
+    env: { ...process.env, BEREDSKAP_DB: skarp, BEREDSKAP_SEED_FORCE: "ja" },
+    encoding: "utf8",
+  });
+  assert.equal(r2.status, 0, "seedningen går inte igenom ens med uttalad avsikt");
 });
